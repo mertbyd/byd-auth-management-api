@@ -1,0 +1,7 @@
+{
+  "modules": {
+    "Byd.AuthManagement": {
+      "path": "Byd.AuthManagement.abpmdl"
+    }
+  }
+}

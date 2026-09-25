@@ -1,0 +1,71 @@
+{
+  "folders": {
+    "items": {
+      "src": {},
+      "test": {},
+      "host": {}
+    }
+  },
+  "packages": {
+    "Byd.AuthManagement.Domain.Shared": {
+      "path": "src/Byd.AuthManagement.Domain.Shared/Byd.AuthManagement.Domain.Shared.abppkg",
+      "folder": "src"
+    },
+    "Byd.AuthManagement.Domain": {
+      "path": "src/Byd.AuthManagement.Domain/Byd.AuthManagement.Domain.abppkg",
+      "folder": "src"
+    },
+    "Byd.AuthManagement.Application.Contracts": {
+      "path": "src/Byd.AuthManagement.Application.Contracts/Byd.AuthManagement.Application.Contracts.abppkg",
+      "folder": "src"
+    },
+    "Byd.AuthManagement.Application": {
+      "path": "src/Byd.AuthManagement.Application/Byd.AuthManagement.Application.abppkg",
+      "folder": "src"
+    },
+    "Byd.AuthManagement.EntityFrameworkCore": {
+      "path": "src/Byd.AuthManagement.EntityFrameworkCore/Byd.AuthManagement.EntityFrameworkCore.abppkg",
+      "folder": "src"
+    },
+      "folder": "src"
+    },
+    "Byd.AuthManagement.HttpApi": {
+      "path": "src/Byd.AuthManagement.HttpApi/Byd.AuthManagement.HttpApi.abppkg",
+      "folder": "src"
+    },
+    "Byd.AuthManagement.HttpApi.Client": {
+      "path": "src/Byd.AuthManagement.HttpApi.Client/Byd.AuthManagement.HttpApi.Client.abppkg",
+      "folder": "src"
+    },
+    "Byd.AuthManagement.TestBase": {
+      "path": "test/Byd.AuthManagement.TestBase/Byd.AuthManagement.TestBase.abppkg",
+      "folder": "test"
+    },
+    "Byd.AuthManagement.EntityFrameworkCore.Tests": {
+      "path": "test/Byd.AuthManagement.EntityFrameworkCore.Tests/Byd.AuthManagement.EntityFrameworkCore.Tests.abppkg",
+      "folder": "test"
+    },
+      "folder": "test"
+    },
+    "Byd.AuthManagement.Domain.Tests": {
+      "path": "test/Byd.AuthManagement.Domain.Tests/Byd.AuthManagement.Domain.Tests.abppkg",
+      "folder": "test"
+    },
+    "Byd.AuthManagement.Application.Tests": {
+      "path": "test/Byd.AuthManagement.Application.Tests/Byd.AuthManagement.Application.Tests.abppkg",
+      "folder": "test"
+    },
+    "Byd.AuthManagement.HttpApi.Host": {
+      "path": "host/Byd.AuthManagement.HttpApi.Host/Byd.AuthManagement.HttpApi.Host.abppkg",
+      "folder": "host"
+    },
+      "folder": "test"
+    },
+      "folder": "host"
+    },
+    "Byd.AuthManagement.Host.Shared": {
+      "path": "host/Byd.AuthManagement.Host.Shared/Byd.AuthManagement.Host.Shared.abppkg",
+      "folder": "host"
+    }
+  }
+}
