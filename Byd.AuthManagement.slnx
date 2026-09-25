@@ -1,0 +1,30 @@
+<Solution>
+  <Folder Name="/host/">
+    
+    
+    
+    <Project Path="host/Byd.AuthManagement.Host.Shared/Byd.AuthManagement.Host.Shared.csproj" />
+    <Project Path="host/Byd.AuthManagement.HttpApi.Host/Byd.AuthManagement.HttpApi.Host.csproj" />
+    
+    
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Byd.AuthManagement.Application.Contracts/Byd.AuthManagement.Application.Contracts.csproj" />
+    <Project Path="src/Byd.AuthManagement.Application/Byd.AuthManagement.Application.csproj" />
+    
+    
+    
+    <Project Path="src/Byd.AuthManagement.Domain.Shared/Byd.AuthManagement.Domain.Shared.csproj" />
+    <Project Path="src/Byd.AuthManagement.Domain/Byd.AuthManagement.Domain.csproj" />
+    <Project Path="src/Byd.AuthManagement.EntityFrameworkCore/Byd.AuthManagement.EntityFrameworkCore.csproj" />
+    <Project Path="src/Byd.AuthManagement.HttpApi.Client/Byd.AuthManagement.HttpApi.Client.csproj" />
+    <Project Path="src/Byd.AuthManagement.HttpApi/Byd.AuthManagement.HttpApi.csproj" />
+    
+  </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/Byd.AuthManagement.Application.Tests/Byd.AuthManagement.Application.Tests.csproj" />
+    <Project Path="test/Byd.AuthManagement.Domain.Tests/Byd.AuthManagement.Domain.Tests.csproj" />
+    <Project Path="test/Byd.AuthManagement.EntityFrameworkCore.Tests/Byd.AuthManagement.EntityFrameworkCore.Tests.csproj" />
+    <Project Path="test/Byd.AuthManagement.TestBase/Byd.AuthManagement.TestBase.csproj" />
+  </Folder>
+</Solution>

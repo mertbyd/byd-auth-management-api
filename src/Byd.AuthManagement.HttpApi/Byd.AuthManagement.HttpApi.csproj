@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\common.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Byd.AuthManagement</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Volo.Abp.AspNetCore.Mvc" Version="10.3.0" />
+    <ProjectReference Include="..\Byd.AuthManagement.Application.Contracts\Byd.AuthManagement.Application.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\byd-core-extensions-api\src\Byd.CoreExtensions.HttpApi\Byd.CoreExtensions.HttpApi.csproj" />
+  </ItemGroup>
+
+</Project>

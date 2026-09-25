@@ -257,5 +257,6 @@ paket-files/
 
 # Use abp install-libs to restore.
 **/wwwroot/libs/*
-appsettings*.json
 Jenkinsfile
+# Yerel NuGet kaynaklari ve kimlik bilgileri; her gelistirici kendi dosyasini tutar.
+NuGet.Config
