@@ -1,7 +1,13 @@
 {
   "culture": "en",
   "texts": {
-    "MyAccount":  "My account",
-    "SamplePageMessage": "A sample page for the AuthManagement module"
+    "MyAccount": "My account",
+    "SamplePageMessage": "A sample page for the AuthManagement module",
+    "Permission:AuthManagement": "Auth management",
+    "Permission:Organizations": "Organizations",
+    "Permission:Organizations.View": "View organizations",
+    "Permission:Organizations.Manage": "Manage organizations",
+    "AuthManagement:010001": "Organization name is required.",
+    "AuthManagement:010002": "Organization name is longer than allowed."
   }
 }

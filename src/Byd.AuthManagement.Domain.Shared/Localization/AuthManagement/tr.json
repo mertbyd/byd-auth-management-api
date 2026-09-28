@@ -1,7 +1,13 @@
 {
   "culture": "tr",
   "texts": {
-    "MyAccount":  "Hesabım",
-    "SamplePageMessage": "AuthManagement modulünden örnek bir sayfa"
+    "MyAccount": "Hesabım",
+    "SamplePageMessage": "AuthManagement modulünden örnek bir sayfa",
+    "Permission:AuthManagement": "Kimlik yonetimi",
+    "Permission:Organizations": "Organizasyonlar",
+    "Permission:Organizations.View": "Organizasyonlari goruntuleme",
+    "Permission:Organizations.Manage": "Organizasyonlari yonetme",
+    "AuthManagement:010001": "Organizasyon adi zorunludur.",
+    "AuthManagement:010002": "Organizasyon adi izin verilenden uzun."
   }
 }
