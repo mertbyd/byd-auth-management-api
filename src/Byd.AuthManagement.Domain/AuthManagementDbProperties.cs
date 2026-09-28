@@ -8,5 +8,5 @@ public static class AuthManagementDbProperties
 
     public static string? DbSchema { get; set; } = DatabaseConsts.ModuleSchema;
 
-    public const string ConnectionStringName = "AuthManagement";
+    public const string ConnectionStringName = "Default";
 }
