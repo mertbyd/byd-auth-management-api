@@ -30,7 +30,7 @@ public interface IAccountAppService : IApplicationService
     // Istegin ait oldugu oturumu ve yetkilendirmeyi kapatir.
     Task LogoutAsync(CancellationToken cancellationToken = default);
 
-    // Yeni kullaniciyi host'ta acar ve secilen tenant'in varsayilan rollerini verir.
+    // Yeni kullaniciyi host'ta acar ve secilen tenant'in ya da organizasyonun varsayilan rollerini verir.
     Task<RegisteredUserDto> RegisterAsync(RegisterDto input, CancellationToken cancellationToken = default);
 
     // Tenant acar ve yeni kullaniciyi o tenant'in tum izinli sahip rolune baglar.

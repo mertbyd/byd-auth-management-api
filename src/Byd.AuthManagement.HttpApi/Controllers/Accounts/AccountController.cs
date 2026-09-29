@@ -126,16 +126,18 @@ public class AccountController : AuthManagementController
     }
 
     /// <summary>
-    /// Yeni kullaniciyi secilen tenant'a kaydeder.
+    /// Yeni kullaniciyi secilen tenant'a, istenirse tenant'taki bir organizasyona kaydeder.
     /// </summary>
-    /// <param name="input">Kaydolunacak tenant, kullanici adi, e-posta ve sifre.</param>
+    /// <param name="input">Kaydolunacak tenant, istege bagli organizasyon, kullanici adi, e-posta ve sifre.</param>
     /// <param name="cancellationToken">Istek iptal belirteci.</param>
     /// <remarks>
-    /// Request { TenantId, UserName, Email, Password }. Kullanici host'ta acilir ve tenant'in varsayilan (IsDefault)
-    /// rolleri verilir; hemen login olabilir. Organizasyon uyeligi verilmez, onu tenant yoneticisi uye ekleme ucuyla
-    /// yapar. Response value { TenantId, TenantName, UserId, UserName, Email } tasir.
-    /// Tenant yoksa, pasifse ya da tenant'ta varsayilan rol yoksa kayit yapilmaz. Kullanici adi ve e-posta sistem
-    /// genelinde tekildir; sifre cercevenin sifre kurallarina uymalidir.
+    /// Request { TenantId, OrganizationId, UserName, Email, Password }. Kullanici host'ta acilir ve hemen login olabilir.
+    /// OrganizationId bossa tenant'in organizasyona bagli olmayan varsayilan (IsDefault) rolleri verilir. Doluysa
+    /// kullanici o organizasyona uye olur ve organizasyonun rollerini uyelikle alir; organizasyonun bagli rolu olmali
+    /// ve hepsi varsayilan olmali, degilse organizasyon kayda kapalidir (030011).
+    /// Response value { TenantId, TenantName, OrganizationId, OrganizationName, UserId, UserName, Email } tasir.
+    /// Tenant yoksa, pasifse, tenant'ta varsayilan rol yoksa ya da organizasyon tenant'ta yoksa kayit yapilmaz.
+    /// Kullanici adi ve e-posta sistem genelinde tekildir; sifre cercevenin sifre kurallarina uymalidir.
     /// </remarks>
     [HttpPost(AccountRoutes.Register)]
     [AllowAnonymous]

@@ -31,6 +31,8 @@
     "AuthManagement:030007": "Password is required.",
     "AuthManagement:030008": "Tenant name is required.",
     "AuthManagement:030009": "Tenant name is longer than allowed.",
+    "AuthManagement:030010": "The selected organization does not exist in the selected tenant.",
+    "AuthManagement:030011": "The selected organization is not open for registration.",
     "AuthManagement:040001": "Email is required.",
     "AuthManagement:040002": "Email is not a valid address.",
     "AuthManagement:040003": "Application name is required.",

@@ -143,13 +143,15 @@ public class AccountManager(
             Organizations = await organizationManager.GetUserOrganizationsAsync(userId, cancellationToken)
         };
     }
-    // Kullaniciyi host'ta acar ve secilen mevcut tenant'in varsayilan rollerini verir; organizasyon uyeligi yonetici
-    // ucunda verilir.
+    // Kullaniciyi host'ta acar. Organizasyon secildiyse kullanici organizasyona uye olur ve organizasyonun varsayilan
+    // rollerini uyelikle alir; secilmediyse tenant'in organizasyona bagli olmayan varsayilan rollerini alir.
     public virtual async Task<RegisteredUserModel> RegisterAsync(
         RegistrationModel model,
         CancellationToken cancellationToken = default)
     {
-        var scope = await GetTenantScopeAsync(model.TenantId, cancellationToken);
+        var scope = model.OrganizationId is null
+            ? await GetTenantScopeAsync(model.TenantId, cancellationToken)
+            : await GetOrganizationScopeAsync(model.TenantId, model.OrganizationId.Value, cancellationToken);
         return await RegisterUserAsync(scope, model.UserName, model.Email, model.Password, cancellationToken);
     }
 
@@ -318,15 +320,12 @@ public class AccountManager(
                 .Select(permission => permission.Name)
         ];
 
-    // Secilen mevcut tenant var ve aktif olmali; kullanici tenant'in varsayilan rollerine girer.
+    // Secilen mevcut tenant'ta kullanici tenant'in varsayilan rollerine girer.
     private async Task<RegistrationScopeModel> GetTenantScopeAsync(
         Guid tenantId,
         CancellationToken cancellationToken = default)
     {
-        var tenant = await tenantStore.FindAsync(tenantId);
-        if (tenant is null || !tenant.IsActive)
-            throw new BusinessException(RegistrationExceptionCodes.TenantNotAvailable);
-
+        var tenant = await GetActiveTenantAsync(tenantId, cancellationToken);
         return new RegistrationScopeModel
         {
             TenantId = tenant.Id,
@@ -335,7 +334,46 @@ public class AccountManager(
         };
     }
 
-    // Tenant'ta varsayilan rol yoksa tenant kayda kapalidir; rolsuz kullanici login olamazdi.
+    // Organizasyon secilen tenant'ta olmali ve kayda acik olmali: bagli rolleri olmali ve hepsi varsayilan olmali, cunku
+    // uyelik organizasyonun butun rollerini verir.
+    private async Task<RegistrationScopeModel> GetOrganizationScopeAsync(
+        Guid tenantId,
+        Guid organizationId,
+        CancellationToken cancellationToken = default)
+    {
+        var tenant = await GetActiveTenantAsync(tenantId, cancellationToken);
+        using (CurrentTenant.Change(tenant.Id))
+        {
+            var organization = await organizationRepository.FindAsync(organizationId, includeDetails: true, cancellationToken)
+                               ?? throw new BusinessException(RegistrationExceptionCodes.OrganizationNotAvailable);
+            var roles = await roleRepository.GetListAsync(organization.Roles.Select(binding => binding.RoleId), cancellationToken);
+            if (roles.Count == 0 || roles.Exists(role => !role.IsDefault))
+                throw new BusinessException(RegistrationExceptionCodes.OrganizationNotOpen);
+
+            return new RegistrationScopeModel
+            {
+                TenantId = tenant.Id,
+                TenantName = tenant.Name,
+                OrganizationId = organization.Id,
+                OrganizationName = organization.DisplayName
+            };
+        }
+    }
+
+    // Secilen tenant var ve aktif olmali.
+    private async Task<TenantConfiguration> GetActiveTenantAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken = default)
+    {
+        var tenant = await tenantStore.FindAsync(tenantId);
+        if (tenant is null || !tenant.IsActive)
+            throw new BusinessException(RegistrationExceptionCodes.TenantNotAvailable);
+
+        return tenant;
+    }
+
+    // Tenant'in organizasyona bagli olmayan varsayilan rollerini getirir; organizasyona bagli varsayilan rol o
+    // organizasyona kayitta uyelikle gelir. Hic yoksa tenant kayda kapalidir, rolsuz kullanici login olamazdi.
     private async Task<List<string>> GetDefaultRoleNamesAsync(
         Guid tenantId,
         CancellationToken cancellationToken = default)
@@ -343,10 +381,17 @@ public class AccountManager(
         using (CurrentTenant.Change(tenantId))
         {
             var defaultRoles = await roleRepository.GetDefaultOnesAsync(includeDetails: false, cancellationToken);
-            if (defaultRoles.Count == 0)
+            var organizationRoleIds = (await organizationRepository.GetListByRoleIdsAsync(
+                    defaultRoles.ConvertAll(role => role.Id),
+                    cancellationToken))
+                .SelectMany(organization => organization.Roles)
+                .Select(binding => binding.RoleId)
+                .ToHashSet();
+            var tenantRoles = defaultRoles.FindAll(role => !organizationRoleIds.Contains(role.Id));
+            if (tenantRoles.Count == 0)
                 throw new BusinessException(RegistrationExceptionCodes.NoDefaultRole);
 
-            return defaultRoles.ConvertAll(role => role.Name);
+            return tenantRoles.ConvertAll(role => role.Name);
         }
     }
 
@@ -433,7 +478,7 @@ public class AccountManager(
         }
     }
 
-    // Kullaniciyi host'ta acar ve kapsamin tenant'inda kapsamin rollerine baglar.
+    // Kullaniciyi host'ta acar; kapsamin tenant'inda kapsamin rollerine baglar, organizasyon varsa ona uye yapar.
     private async Task<RegisteredUserModel> RegisterUserAsync(
         RegistrationScopeModel scope,
         string userName,
@@ -443,12 +488,20 @@ public class AccountManager(
     {
         var user = await CreateHostUserAsync(userName, email, password, cancellationToken);
         using (CurrentTenant.Change(scope.TenantId))
-            (await userManager.AddToRolesAsync(user, scope.RoleNames)).CheckErrors();
+        {
+            if (scope.RoleNames.Count > 0)
+                (await userManager.AddToRolesAsync(user, scope.RoleNames)).CheckErrors();
+
+            if (scope.OrganizationId is not null)
+                await organizationManager.AddMemberAsync(scope.OrganizationId.Value, user.Id, cancellationToken);
+        }
 
         return new RegisteredUserModel
         {
             TenantId = scope.TenantId,
             TenantName = scope.TenantName,
+            OrganizationId = scope.OrganizationId,
+            OrganizationName = scope.OrganizationName,
             UserId = user.Id,
             UserName = user.UserName,
             Email = user.Email

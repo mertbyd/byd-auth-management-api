@@ -134,7 +134,7 @@ public class AccountAppService : AuthManagementAppService, IAccountAppService
             await AuthorizationManager.TryRevokeAsync(authorization, cancellationToken);
     }
 
-    // Girdiyi dogrular, kullaniciyi host'ta acip secilen tenant'in varsayilan rollerini verir.
+    // Girdiyi dogrular, kullaniciyi host'ta acip secilen tenant'in ya da organizasyonun varsayilan rollerini verir.
     public virtual async Task<RegisteredUserDto> RegisterAsync(
         RegisterDto input,
         CancellationToken cancellationToken = default)
