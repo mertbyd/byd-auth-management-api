@@ -2,24 +2,26 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Duende.IdentityModel;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OpenIddict.Validation.AspNetCore;
 using System.Reflection;
 using Byd.CoreExtensions;
 using Byd.CoreExtensions.Extensions;
 using Byd.CoreExtensions.Options;
+using Byd.AuthManagement.Consts;
 using Byd.AuthManagement.EntityFrameworkCore;
 using Byd.AuthManagement.MultiTenancy;
 using StackExchange.Redis;
 using Microsoft.OpenApi;
 using Volo.Abp;
-using Volo.Abp.AspNetCore.Authentication.JwtBearer;
 using Volo.Abp.AspNetCore.Mvc.UI.MultiTenancy;
 using Volo.Abp.AspNetCore.Mvc.UI.Theme.Shared;
 using Volo.Abp.AspNetCore.Serilog;
@@ -27,10 +29,12 @@ using Volo.Abp.AuditLogging.EntityFrameworkCore;
 using Volo.Abp.Autofac;
 using Volo.Abp.Caching;
 using Volo.Abp.Caching.StackExchangeRedis;
+using Volo.Abp.Data;
 using Volo.Abp.EntityFrameworkCore;
 using Volo.Abp.EntityFrameworkCore.PostgreSql;
 using Volo.Abp.Localization;
 using Volo.Abp.Modularity;
+using Volo.Abp.OpenIddict;
 using Volo.Abp.MultiTenancy;
 using Volo.Abp.PermissionManagement.EntityFrameworkCore;
 using Volo.Abp.Security.Claims;
@@ -46,7 +50,6 @@ namespace Byd.AuthManagement;
     typeof(AuthManagementEntityFrameworkCoreModule),
     typeof(AuthManagementHttpApiModule),
     typeof(AbpAspNetCoreMvcUiMultiTenancyModule),
-    typeof(AbpAspNetCoreAuthenticationJwtBearerModule),
     typeof(AbpAutofacModule),
     typeof(AbpCachingStackExchangeRedisModule),
     typeof(AbpEntityFrameworkCorePostgreSqlModule),
@@ -57,9 +60,41 @@ namespace Byd.AuthManagement;
 public class AuthManagementHttpApiHostModule : AbpModule
 {
     // ABP ortak ve ayar tablolarini core'un beyan ettigi semaya alir; model kurulmadan once calisir.
+    // Token'lar bu host'ta uretildigi icin dogrulama da yerel sunucuya baglanir; disaridaki bir adrese gidilmez.
     public override void PreConfigureServices(ServiceConfigurationContext context)
     {
         ServiceConfigurationContextExtension.ResolveSchemaAndPrefix();
+
+        var hostingEnvironment = context.Services.GetHostingEnvironment();
+        var configuration = context.Services.GetConfiguration();
+
+        PreConfigure<OpenIddictBuilder>(builder =>
+        {
+            builder.AddValidation(options =>
+            {
+                options.AddAudiences(OpenIddictConsts.ApiScope);
+                options.UseLocalServer();
+                options.UseAspNetCore();
+            });
+        });
+
+        // Gelistirme sertifikasi yalniz gelistirmede kalir; diger ortamlar imza ve sifreleme anahtarini dagitimdaki
+        // sertifikadan alir ve issuer'i config'teki adrese sabitler.
+        if (!hostingEnvironment.IsDevelopment())
+        {
+            PreConfigure<AbpOpenIddictAspNetCoreOptions>(options =>
+            {
+                options.AddDevelopmentEncryptionAndSigningCertificate = false;
+            });
+
+            PreConfigure<OpenIddictServerBuilder>(serverBuilder =>
+            {
+                serverBuilder.AddProductionEncryptionAndSigningCertificate(
+                    "openiddict.pfx",
+                    configuration["AuthServer:CertificatePassPhrase"]!);
+                serverBuilder.SetIssuer(new Uri(configuration["AuthServer:Authority"]!));
+            });
+        }
     }
 
     // Core modul adi ve ortam adini beyan eder; core saglayicilari bu beyan olmadan acilista durur.
@@ -116,13 +151,8 @@ public class AuthManagementHttpApiHostModule : AbpModule
             options.Languages.Add(new LanguageInfo("tr", "tr", "Türkçe"));
         });
 
-        context.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddAbpJwtBearer(options =>
-            {
-                options.Authority = configuration["AuthServer:Authority"];
-                options.RequireHttpsMetadata = configuration.GetValue<bool>("AuthServer:RequireHttpsMetadata");
-                options.Audience = "AuthManagement";
-            });
+        // Bearer tasiyan istekler OpenIddict dogrulamasina yonlenir; token'i ureten sunucu ayni host'tadir.
+        context.Services.ForwardIdentityAuthenticationForBearer(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
 
         Configure<AbpDistributedCacheOptions>(options =>
         {
@@ -176,6 +206,7 @@ public class AuthManagementHttpApiHostModule : AbpModule
         app.UseRouting();
         app.UseCors();
         app.UseAuthentication();
+        app.UseAbpOpenIddictValidation();
         if (MultiTenancyConsts.IsEnabled)
         {
             app.UseMultiTenancy();
@@ -195,5 +226,11 @@ public class AuthManagementHttpApiHostModule : AbpModule
         app.UseAuditing();
         app.UseAbpSerilogEnrichers();
         app.UseConfiguredEndpoints();
+    }
+
+    // Modullerin seed katkilarini (token client'i ve scope'u vb.) uygulama acilirken idempotent olarak calistirir.
+    public override async Task OnPostApplicationInitializationAsync(ApplicationInitializationContext context)
+    {
+        await context.ServiceProvider.GetRequiredService<IDataSeeder>().SeedAsync();
     }
 }
