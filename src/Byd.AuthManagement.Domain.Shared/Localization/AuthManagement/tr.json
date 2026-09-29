@@ -8,6 +8,16 @@
     "Permission:Organizations.View": "Organizasyonlari goruntuleme",
     "Permission:Organizations.Manage": "Organizasyonlari yonetme",
     "AuthManagement:010001": "Organizasyon adi zorunludur.",
-    "AuthManagement:010002": "Organizasyon adi izin verilenden uzun."
+    "AuthManagement:010002": "Organizasyon adi izin verilenden uzun.",
+    "AuthManagement:020001": "Kullanici adi veya sifre hatali.",
+    "AuthManagement:020002": "Hesap hatali denemeler nedeniyle kilitlendi. Lutfen daha sonra tekrar deneyin.",
+    "AuthManagement:020003": "Hesap pasif veya dogrulanmamis.",
+    "AuthManagement:020004": "Secilen tenant veya organizasyon bu kullanici icin gecerli degil.",
+    "AuthManagement:020005": "Kullanicinin secilen tenant veya organizasyonda rolu yok.",
+    "AuthManagement:020006": "Token uretilemedi.",
+    "AuthManagement:020007": "Kullanici adi zorunludur.",
+    "AuthManagement:020008": "Sifre zorunludur.",
+    "AuthManagement:020009": "Refresh token zorunludur.",
+    "AuthManagement:020010": "Tenant zorunludur."
   }
 }

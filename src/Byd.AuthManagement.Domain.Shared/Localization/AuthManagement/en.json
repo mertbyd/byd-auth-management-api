@@ -8,6 +8,16 @@
     "Permission:Organizations.View": "View organizations",
     "Permission:Organizations.Manage": "Manage organizations",
     "AuthManagement:010001": "Organization name is required.",
-    "AuthManagement:010002": "Organization name is longer than allowed."
+    "AuthManagement:010002": "Organization name is longer than allowed.",
+    "AuthManagement:020001": "Invalid username or password.",
+    "AuthManagement:020002": "The account is locked due to failed attempts. Please try again later.",
+    "AuthManagement:020003": "The account is inactive or not verified.",
+    "AuthManagement:020004": "The selected tenant or organization is not available for this user.",
+    "AuthManagement:020005": "The user has no role in the selected tenant or organization.",
+    "AuthManagement:020006": "The token could not be issued.",
+    "AuthManagement:020007": "Username is required.",
+    "AuthManagement:020008": "Password is required.",
+    "AuthManagement:020009": "Refresh token is required.",
+    "AuthManagement:020010": "Tenant is required."
   }
 }

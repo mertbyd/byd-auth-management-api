@@ -15,6 +15,7 @@ public sealed class OrganizationModel
     public string? ParentName { get; set; }
     public string Code { get; set; } = default!;
     public string DisplayName { get; set; } = default!;
+    public bool HasRole { get; set; }
     public DateTime CreationTime { get; set; }
     public DateTime? LastModificationTime { get; set; }
 }

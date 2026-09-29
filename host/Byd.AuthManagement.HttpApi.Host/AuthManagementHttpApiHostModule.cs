@@ -19,6 +19,7 @@ using Byd.CoreExtensions.Options;
 using Byd.AuthManagement.Consts;
 using Byd.AuthManagement.EntityFrameworkCore;
 using Byd.AuthManagement.MultiTenancy;
+using Byd.AuthManagement.Options;
 using StackExchange.Redis;
 using Microsoft.OpenApi;
 using Volo.Abp;
@@ -108,6 +109,12 @@ public class AuthManagementHttpApiHostModule : AbpModule
             options.ModuleName = Assembly.GetEntryAssembly()?.GetName().Name?
                 .Replace(".HttpApi.Host", string.Empty);
             options.EnvironmentName = hostingEnvironment.EnvironmentName;
+        });
+
+        // Login servisi token'i bu adresteki token ucundan ister; adres host'un kendi ayarindan gelir.
+        Configure<AuthManagementModuleOptions>(options =>
+        {
+            options.Authority = configuration["AuthServer:Authority"]!;
         });
 
         Configure<AbpDbContextOptions>(options =>

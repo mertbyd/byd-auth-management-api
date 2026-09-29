@@ -60,7 +60,7 @@ public class EfCoreOrganizationRepository(IDbContextProvider<IIdentityDbContext>
         return await AsyncExecuter.ToListAsync(query, cancellationToken);
     }
 
-    // Organizasyonu ust kaydinin adiyla modele yansitir.
+    // Organizasyonu ust kaydinin adiyla ve rol verip vermedigiyle modele yansitir.
     private async Task<IQueryable<OrganizationModel>> GetModelQueryableAsync(
         CancellationToken cancellationToken = default)
     {
@@ -76,6 +76,7 @@ public class EfCoreOrganizationRepository(IDbContextProvider<IIdentityDbContext>
                    ParentName = parent == null ? null : parent.DisplayName,
                    Code = organization.Code,
                    DisplayName = organization.DisplayName,
+                   HasRole = organization.Roles.Any(),
                    CreationTime = organization.CreationTime,
                    LastModificationTime = organization.LastModificationTime
                };
