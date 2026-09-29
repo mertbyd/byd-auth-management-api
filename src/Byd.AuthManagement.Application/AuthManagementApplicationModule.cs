@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Byd.AuthManagement.Logins;
 using Byd.AuthManagement.Options;
+using Volo.Abp.Account;
 using Volo.Abp.Identity.AspNetCore;
 using Volo.Abp.Mapperly;
 using Volo.Abp.Modularity;
@@ -20,7 +21,8 @@ namespace Byd.AuthManagement;
     typeof(AbpDddApplicationModule),
     typeof(AbpMapperlyModule),
     typeof(AbpIdentityAspNetCoreModule),
-    typeof(AbpOpenIddictAspNetCoreModule)
+    typeof(AbpOpenIddictAspNetCoreModule),
+    typeof(AbpAccountApplicationModule)
     )]
 public class AuthManagementApplicationModule : AbpModule
 {

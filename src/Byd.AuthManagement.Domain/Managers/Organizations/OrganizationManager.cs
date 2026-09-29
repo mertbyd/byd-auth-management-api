@@ -12,13 +12,15 @@ using Volo.Abp.MultiTenancy;
 namespace Byd.AuthManagement.Managers.Organizations;
 
 /// <summary>
-/// Organizasyonun olusturma, guncelleme ve uyelik okuma kurallarini yonetir.
+/// Organizasyonun olusturma, guncelleme ve uyelik kurallarini yonetir.
 /// </summary>
-// islevi: Yeni organizasyonu istegin tenant'inda kurar; guncellemede once yeri, sonra adi degistirir; uyelikleri okur.
+// islevi: Organizasyonu istegin tenant'inda kurar ve gunceller; uyelikleri okur, uye ekler ve cikarir.
 // sistemdeki gorevi: Agac kurallarini (kod, tekillik, tasima) cercevenin Manager'ina birakan domain sahibidir.
 public class OrganizationManager(
     IOrganizationRepository repository,
     OrganizationUnitManager organizationUnitManager,
+    IdentityUserManager userManager,
+    IIdentityUserRepository userRepository,
     IDataFilter dataFilter) : DomainService
 {
     // Kullanicinin istegin tenant'indaki uyeliklerini getirir; uyelik kaydi kullanicinin kendi tenant'inda durabilir.
@@ -53,5 +55,24 @@ public class OrganizationManager(
 
         entity.DisplayName = model.DisplayName;
         await organizationUnitManager.UpdateAsync(entity);
+    }
+
+    // Kullaniciyi organizasyona uye yapar. Organizasyon tenant filtresi acikken okunur ki baska tenant'in
+    // organizasyonuna uye eklenemesin; kullanici ve uyelikleri host'ta durdugu icin gerisi filtre kapaliyken yapilir.
+    public virtual async Task AddMemberAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
+    {
+        var organization = await repository.GetAsync(id, includeDetails: false, cancellationToken);
+        using var tenantFilter = dataFilter.Disable<IMultiTenant>();
+        var user = await userRepository.GetAsync(userId, includeDetails: false, cancellationToken);
+        await userManager.AddToOrganizationUnitAsync(user, organization);
+    }
+
+    // Kullaniciyi organizasyondan cikarir; okuma kurali uye eklemeyle aynidir.
+    public virtual async Task RemoveMemberAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
+    {
+        var organization = await repository.GetAsync(id, includeDetails: false, cancellationToken);
+        using var tenantFilter = dataFilter.Disable<IMultiTenant>();
+        var user = await userRepository.GetAsync(userId, includeDetails: false, cancellationToken);
+        await userManager.RemoveFromOrganizationUnitAsync(user, organization);
     }
 }

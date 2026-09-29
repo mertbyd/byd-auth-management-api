@@ -4,6 +4,8 @@ using FluentValidation;
 using Microsoft.AspNetCore.Identity;
 using OpenIddict.Abstractions;
 using Byd.AuthManagement.Dtos.Logins;
+using Byd.AuthManagement.Dtos.Passwords;
+using Byd.AuthManagement.Dtos.Registrations;
 using Byd.AuthManagement.Logins;
 using Byd.AuthManagement.Managers.Accounts;
 using Byd.AuthManagement.Mappers.Accounts;
@@ -13,9 +15,9 @@ using IdentityUser = Volo.Abp.Identity.IdentityUser;
 namespace Byd.AuthManagement.Services.Accounts;
 
 /// <summary>
-/// Oturum akislarini tek bir hesap servisinde yurutur.
+/// Oturum, kayit ve sifre akislarini tek bir hesap servisinde yurutur.
 /// </summary>
-// islevi: Girdileri dogrular; login ve switch kararlarini Manager'a, token isteklerini token istemcisine yonlendirir.
+// islevi: Girdileri dogrular; login, switch ve kayit kararlarini Manager'a, sifre islemlerini cerceve servislerine yonlendirir.
 // sistemdeki gorevi: Controller ile hesap dikey kesitleri arasindaki tek public giris noktasidir.
 public class AccountAppService : AuthManagementAppService, IAccountAppService
 {
@@ -37,6 +39,20 @@ public class AccountAppService : AuthManagementAppService, IAccountAppService
         LazyGetRequiredService<IValidator<SwitchScopeDto>>();
     private IValidator<RefreshTokenDto> RefreshValidator =>
         LazyGetRequiredService<IValidator<RefreshTokenDto>>();
+    private IValidator<RegisterDto> RegisterValidator =>
+        LazyGetRequiredService<IValidator<RegisterDto>>();
+    private Volo.Abp.Account.IAccountAppService AbpAccountAppService =>
+        LazyGetRequiredService<Volo.Abp.Account.IAccountAppService>();
+    private Volo.Abp.Account.IProfileAppService AbpProfileAppService =>
+        LazyGetRequiredService<Volo.Abp.Account.IProfileAppService>();
+    private IValidator<PasswordResetCodeDto> ResetCodeValidator =>
+        LazyGetRequiredService<IValidator<PasswordResetCodeDto>>();
+    private IValidator<PasswordResetTokenDto> ResetTokenValidator =>
+        LazyGetRequiredService<IValidator<PasswordResetTokenDto>>();
+    private IValidator<PasswordResetDto> ResetValidator =>
+        LazyGetRequiredService<IValidator<PasswordResetDto>>();
+    private IValidator<PasswordChangeDto> ChangeValidator =>
+        LazyGetRequiredService<IValidator<PasswordChangeDto>>();
 
     // Kimlik bilgilerini dogrular; secenekleri ve token'i dondurur, secim eksikse token kapsamsizdir.
     // Sifre token ucundan once burada da kontrol edilir: kilit sayaci ve hata kodlari burada islenir.
@@ -107,5 +123,55 @@ public class AccountAppService : AuthManagementAppService, IAccountAppService
         var authorization = await AuthorizationManager.FindByIdAsync(authorizationId, cancellationToken);
         if (authorization is not null)
             await AuthorizationManager.TryRevokeAsync(authorization, cancellationToken);
+    }
+
+    // Girdiyi dogrular, kullaniciyi host'ta acip secilen tenant'in varsayilan rollerini verir.
+    public virtual async Task<RegisteredUserDto> RegisterAsync(
+        RegisterDto input,
+        CancellationToken cancellationToken = default)
+    {
+        await RegisterValidator.ValidateAndThrowAsync(input, cancellationToken);
+        var user = await Manager.RegisterAsync(Mapper.Map(input), cancellationToken);
+        return Mapper.Map(user);
+    }
+
+    // Sifirlama baglantisini kullanicinin e-postasina gonderir.
+    public virtual async Task SendPasswordResetCodeAsync(
+        PasswordResetCodeDto input,
+        CancellationToken cancellationToken = default)
+    {
+        await ResetCodeValidator.ValidateAndThrowAsync(input, cancellationToken);
+        using var hostScope = CurrentTenant.Change(null);
+        await AbpAccountAppService.SendPasswordResetCodeAsync(Mapper.Map(input));
+    }
+
+    // Sifirlama token'inin gecerli olup olmadigini dondurur.
+    public virtual async Task<bool> VerifyPasswordResetTokenAsync(
+        PasswordResetTokenDto input,
+        CancellationToken cancellationToken = default)
+    {
+        await ResetTokenValidator.ValidateAndThrowAsync(input, cancellationToken);
+        using var hostScope = CurrentTenant.Change(null);
+        return await AbpAccountAppService.VerifyPasswordResetTokenAsync(Mapper.Map(input));
+    }
+
+    // Token'la yeni sifreyi belirler.
+    public virtual async Task ResetPasswordAsync(
+        PasswordResetDto input,
+        CancellationToken cancellationToken = default)
+    {
+        await ResetValidator.ValidateAndThrowAsync(input, cancellationToken);
+        using var hostScope = CurrentTenant.Change(null);
+        await AbpAccountAppService.ResetPasswordAsync(Mapper.Map(input));
+    }
+
+    // Giris yapmis kullanicinin sifresini degistirir; token hangi tenant'i tasirsa tasisin kullanici host'ta aranir.
+    public virtual async Task ChangePasswordAsync(
+        PasswordChangeDto input,
+        CancellationToken cancellationToken = default)
+    {
+        await ChangeValidator.ValidateAndThrowAsync(input, cancellationToken);
+        using var hostScope = CurrentTenant.Change(null);
+        await AbpProfileAppService.ChangePasswordAsync(Mapper.Map(input));
     }
 }

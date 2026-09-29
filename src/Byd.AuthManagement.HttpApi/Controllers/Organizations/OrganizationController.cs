@@ -186,4 +186,48 @@ public class OrganizationController : AuthManagementController
         await AppService.DeleteAsync(id, cancellationToken);
         return Result.NoContent();
     }
+
+    /// <summary>
+    /// Kullaniciyi organizasyona uye yapar.
+    /// </summary>
+    /// <param name="id">Uye eklenecek organizasyonun kimligi.</param>
+    /// <param name="userId">Uye yapilacak kullanicinin kimligi.</param>
+    /// <param name="cancellationToken">Istek iptal belirteci.</param>
+    /// <remarks>
+    /// Istek govdesi yoktur. Organizasyon istegin tenant'inda olmalidir. Kullanici zaten uyeyse degisiklik yapilmaz.
+    /// Organizasyonun rolleri kullanicinin bir sonraki login'inde ya da refresh'inde token'a gelir; mevcut token
+    /// degismez. Basarili istekte iceriksiz cevap dondurulur.
+    /// </remarks>
+    [HttpPost(OrganizationRoutes.Member)]
+    [Authorize(AuthManagementPermissions.Organizations.Manage)]
+    public virtual async Task<Result> AddMemberAsync(
+        Guid id,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        await AppService.AddMemberAsync(id, userId, cancellationToken);
+        return Result.NoContent();
+    }
+
+    /// <summary>
+    /// Kullaniciyi organizasyondan cikarir.
+    /// </summary>
+    /// <param name="id">Uyeligi kaldirilacak organizasyonun kimligi.</param>
+    /// <param name="userId">Organizasyondan cikarilacak kullanicinin kimligi.</param>
+    /// <param name="cancellationToken">Istek iptal belirteci.</param>
+    /// <remarks>
+    /// Istek govdesi yoktur. Organizasyon istegin tenant'inda olmalidir. Kullanici uye degilse degisiklik yapilmaz.
+    /// Organizasyonun rolleri kullanicinin bir sonraki login'inde ya da refresh'inde token'dan duser; mevcut token
+    /// degismez. Basarili istekte iceriksiz cevap dondurulur.
+    /// </remarks>
+    [HttpDelete(OrganizationRoutes.Member)]
+    [Authorize(AuthManagementPermissions.Organizations.Manage)]
+    public virtual async Task<Result> RemoveMemberAsync(
+        Guid id,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        await AppService.RemoveMemberAsync(id, userId, cancellationToken);
+        return Result.NoContent();
+    }
 }

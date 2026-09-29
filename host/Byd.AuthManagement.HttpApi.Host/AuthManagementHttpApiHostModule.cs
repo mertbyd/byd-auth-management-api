@@ -22,7 +22,9 @@ using Byd.AuthManagement.MultiTenancy;
 using Byd.AuthManagement.Options;
 using StackExchange.Redis;
 using Microsoft.OpenApi;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Volo.Abp;
+using Volo.Abp.Account;
 using Volo.Abp.AspNetCore.Mvc.UI.MultiTenancy;
 using Volo.Abp.AspNetCore.Mvc.UI.Theme.Shared;
 using Volo.Abp.AspNetCore.Serilog;
@@ -33,6 +35,7 @@ using Volo.Abp.Caching.StackExchangeRedis;
 using Volo.Abp.Data;
 using Volo.Abp.EntityFrameworkCore;
 using Volo.Abp.EntityFrameworkCore.PostgreSql;
+using Volo.Abp.Emailing;
 using Volo.Abp.Localization;
 using Volo.Abp.Modularity;
 using Volo.Abp.OpenIddict;
@@ -42,6 +45,7 @@ using Volo.Abp.Security.Claims;
 using Volo.Abp.SettingManagement.EntityFrameworkCore;
 using Volo.Abp.Swashbuckle;
 using Volo.Abp.TenantManagement.EntityFrameworkCore;
+using Volo.Abp.UI.Navigation.Urls;
 using Volo.Abp.VirtualFileSystem;
 
 namespace Byd.AuthManagement;
@@ -116,6 +120,18 @@ public class AuthManagementHttpApiHostModule : AbpModule
         {
             options.Authority = configuration["AuthServer:Authority"]!;
         });
+
+        // Sifre sifirlama baglantisi istemcinin sifre sayfasina gider; istemcinin adresi host'un ayarindan gelir.
+        Configure<AppUrlOptions>(options =>
+        {
+            options.Applications[PasswordConsts.ClientAppName].RootUrl = configuration["App:ClientUrl"];
+            options.Applications[PasswordConsts.ClientAppName].Urls[AccountUrlNames.PasswordReset] =
+                PasswordConsts.ResetPasswordPagePath;
+        });
+
+        // Gelistirmede e-posta gonderilmez; icerik log'a yazilir.
+        if (hostingEnvironment.IsDevelopment())
+            context.Services.Replace(ServiceDescriptor.Singleton<IEmailSender, NullEmailSender>());
 
         Configure<AbpDbContextOptions>(options =>
         {

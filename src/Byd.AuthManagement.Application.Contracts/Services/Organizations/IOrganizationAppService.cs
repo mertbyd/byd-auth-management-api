@@ -51,4 +51,10 @@ public interface IOrganizationAppService : IApplicationService
 
     // Kimligi verilen organizasyonu alt agaciyla birlikte siler.
     Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
+
+    // Kullaniciyi organizasyona uye yapar.
+    Task AddMemberAsync(Guid id, Guid userId, CancellationToken cancellationToken = default);
+
+    // Kullaniciyi organizasyondan cikarir.
+    Task RemoveMemberAsync(Guid id, Guid userId, CancellationToken cancellationToken = default);
 }

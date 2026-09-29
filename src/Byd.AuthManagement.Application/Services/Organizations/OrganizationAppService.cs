@@ -109,4 +109,12 @@ public class OrganizationAppService : AuthManagementAppService, IOrganizationApp
     // Kaydi alt agaciyla siler; uyelik ve rol baglarini cercevenin Manager'i temizler.
     public virtual async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
         => await OrganizationUnitManager.DeleteAsync(id);
+
+    // Kullaniciyi organizasyona uye yapar.
+    public virtual async Task AddMemberAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
+        => await Manager.AddMemberAsync(id, userId, cancellationToken);
+
+    // Kullaniciyi organizasyondan cikarir.
+    public virtual async Task RemoveMemberAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
+        => await Manager.RemoveMemberAsync(id, userId, cancellationToken);
 }

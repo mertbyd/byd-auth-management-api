@@ -18,6 +18,21 @@
     "AuthManagement:020007": "Username is required.",
     "AuthManagement:020008": "Password is required.",
     "AuthManagement:020009": "Refresh token is required.",
-    "AuthManagement:020010": "Tenant is required."
+    "AuthManagement:020010": "Tenant is required.",
+    "AuthManagement:030001": "The selected tenant does not exist or is not active.",
+    "AuthManagement:030002": "The selected tenant is not open for registration.",
+    "AuthManagement:030003": "Tenant is required.",
+    "AuthManagement:030004": "User name is required.",
+    "AuthManagement:030005": "Email is required.",
+    "AuthManagement:030006": "Email is not a valid address.",
+    "AuthManagement:030007": "Password is required.",
+    "AuthManagement:040001": "Email is required.",
+    "AuthManagement:040002": "Email is not a valid address.",
+    "AuthManagement:040003": "Application name is required.",
+    "AuthManagement:040004": "User is required.",
+    "AuthManagement:040005": "Reset token is required.",
+    "AuthManagement:040006": "New password is required.",
+    "AuthManagement:040007": "Current password is required.",
+    "AuthManagement:040008": "New password cannot be the same as the current password."
   }
 }

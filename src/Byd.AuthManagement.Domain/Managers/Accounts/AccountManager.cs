@@ -3,10 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 using Byd.AuthManagement.ExceptionCodes;
 using Byd.AuthManagement.Interfaces.Organizations;
 using Byd.AuthManagement.Managers.Organizations;
 using Byd.AuthManagement.Models.Logins;
+using Byd.AuthManagement.Models.Registrations;
 using Byd.CoreExtensions.Consts;
 using Byd.CoreExtensions.Interfaces;
 using Volo.Abp;
@@ -15,15 +18,16 @@ using Volo.Abp.Domain.Services;
 using Volo.Abp.Identity;
 using Volo.Abp.MultiTenancy;
 using Volo.Abp.Users;
+using IdentityOptions = Microsoft.AspNetCore.Identity.IdentityOptions;
 using SignInResult = Microsoft.AspNetCore.Identity.SignInResult;
 
 namespace Byd.AuthManagement.Managers.Accounts;
 
 /// <summary>
-/// Hesabin girisini ve token kapsamini yonetir.
+/// Hesabin girisini, token kapsamini ve kaydini yonetir.
 /// </summary>
-// islevi: Kimlik bilgisini dogrular, kapsamlari rollerden ve uyeliklerden cikarir, secimi dogrulayip rolleri toplar.
-// sistemdeki gorevi: Hesap servisi ve token claim'lerini kuran handler kapsam kararini buradan alir.
+// islevi: Kimlik bilgisini dogrular, kapsamlari rollerden ve uyeliklerden cikarir, secimi dogrulayip rolleri toplar; kullaniciyi kaydeder.
+// sistemdeki gorevi: Hesap servisi ve token claim'lerini kuran handler kapsam ve kayit kararlarini buradan alir.
 // Kullanici host'ta, rolleri ve organizasyonlari tenant'larda durdugu icin okumalar tenant filtresi kapaliyken yapilir.
 public class AccountManager(
     IdentityUserManager userManager,
@@ -32,6 +36,7 @@ public class AccountManager(
     IOrganizationRepository organizationRepository,
     OrganizationManager organizationManager,
     ITenantStore tenantStore,
+    IOptions<IdentityOptions> identityOptions,
     IDataFilter dataFilter,
     ICurrentUser currentUser,
     ICurrentOrganization currentOrganization) : DomainService
@@ -133,6 +138,27 @@ public class AccountManager(
         };
     }
 
+    // Kullaniciyi host'ta acar ve secilen tenant'in varsayilan rollerini verir; organizasyon uyeligi yonetici ucunda verilir.
+    public virtual async Task<RegisteredUserModel> RegisterAsync(
+        RegistrationModel model,
+        CancellationToken cancellationToken = default)
+    {
+        var tenant = await GetActiveTenantAsync(model.TenantId, cancellationToken);
+        await EnsureDefaultRoleExistsAsync(tenant.Id, cancellationToken);
+        var user = await CreateHostUserAsync(model, cancellationToken);
+        using (CurrentTenant.Change(tenant.Id))
+            (await userManager.AddDefaultRolesAsync(user)).CheckErrors();
+
+        return new RegisteredUserModel
+        {
+            TenantId = tenant.Id,
+            TenantName = tenant.Name,
+            UserId = user.Id,
+            UserName = user.UserName,
+            Email = user.Email
+        };
+    }
+
     // Kullanicinin rol baglarindan dogrudan rollerini okur.
     private async Task<List<IdentityRole>> GetDirectRolesAsync(
         Guid userId,
@@ -217,5 +243,42 @@ public class AccountManager(
             ? []
             : await roleRepository.GetListAsync(organization.Roles.Select(role => role.RoleId), cancellationToken);
         return [.. directRoles.Where(role => role.TenantId == tenantId).UnionBy(organizationRoles, role => role.Id)];
+    }
+
+    // Secilen tenant var ve aktif olmali.
+    private async Task<TenantConfiguration> GetActiveTenantAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken = default)
+    {
+        var tenant = await tenantStore.FindAsync(tenantId);
+        if (tenant is null || !tenant.IsActive)
+            throw new BusinessException(RegistrationExceptionCodes.TenantNotAvailable);
+
+        return tenant;
+    }
+
+    // Tenant'ta varsayilan rol yoksa tenant kayda kapalidir; rolsuz kullanici login olamazdi.
+    private async Task EnsureDefaultRoleExistsAsync(Guid tenantId, CancellationToken cancellationToken = default)
+    {
+        using (CurrentTenant.Change(tenantId))
+        {
+            var defaultRoles = await roleRepository.GetDefaultOnesAsync(includeDetails: false, cancellationToken);
+            if (defaultRoles.Count == 0)
+                throw new BusinessException(RegistrationExceptionCodes.NoDefaultRole);
+        }
+    }
+
+    // Kullaniciyi host'ta, cercevenin sifre ve tekillik kurallariyla acar.
+    private async Task<IdentityUser> CreateHostUserAsync(
+        RegistrationModel model,
+        CancellationToken cancellationToken = default)
+    {
+        using (CurrentTenant.Change(null))
+        {
+            await identityOptions.SetAsync();
+            var user = new IdentityUser(GuidGenerator.Create(), model.UserName, model.Email);
+            (await userManager.CreateAsync(user, model.Password)).CheckErrors();
+            return user;
+        }
     }
 }

@@ -18,6 +18,21 @@
     "AuthManagement:020007": "Kullanici adi zorunludur.",
     "AuthManagement:020008": "Sifre zorunludur.",
     "AuthManagement:020009": "Refresh token zorunludur.",
-    "AuthManagement:020010": "Tenant zorunludur."
+    "AuthManagement:020010": "Tenant zorunludur.",
+    "AuthManagement:030001": "Secilen tenant yok ya da aktif degil.",
+    "AuthManagement:030002": "Secilen tenant kayda acik degil.",
+    "AuthManagement:030003": "Tenant zorunludur.",
+    "AuthManagement:030004": "Kullanici adi zorunludur.",
+    "AuthManagement:030005": "E-posta zorunludur.",
+    "AuthManagement:030006": "E-posta gecerli bir adres degil.",
+    "AuthManagement:030007": "Sifre zorunludur.",
+    "AuthManagement:040001": "E-posta zorunludur.",
+    "AuthManagement:040002": "E-posta gecerli bir adres degil.",
+    "AuthManagement:040003": "Uygulama adi zorunludur.",
+    "AuthManagement:040004": "Kullanici zorunludur.",
+    "AuthManagement:040005": "Sifirlama token'i zorunludur.",
+    "AuthManagement:040006": "Yeni sifre zorunludur.",
+    "AuthManagement:040007": "Mevcut sifre zorunludur.",
+    "AuthManagement:040008": "Yeni sifre mevcut sifreyle ayni olamaz."
   }
 }

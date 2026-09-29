@@ -1,14 +1,16 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Byd.AuthManagement.Dtos.Logins;
+using Byd.AuthManagement.Dtos.Passwords;
+using Byd.AuthManagement.Dtos.Registrations;
 using Volo.Abp.Application.Services;
 
 namespace Byd.AuthManagement.Services.Accounts;
 
 /// <summary>
-/// Oturum kullanim senaryolarini tek bir hesap servisi altinda tanimlar.
+/// Oturum, kayit ve sifre kullanim senaryolarini tek bir hesap servisi altinda tanimlar.
 /// </summary>
-// islevi: Login, kapsam degistirme, token yenileme, oturum bilgisi ve logout kontratini acar.
+// islevi: Login, kapsam degistirme, token yenileme, oturum bilgisi, logout, kayit ve sifre yonetimi kontratini acar.
 // sistemdeki gorevi: Controller ile Application implementasyonu arasindaki public hesap servisi siniridir.
 public interface IAccountAppService : IApplicationService
 {
@@ -26,4 +28,19 @@ public interface IAccountAppService : IApplicationService
 
     // Istegin ait oldugu oturumu ve yetkilendirmeyi kapatir.
     Task LogoutAsync(CancellationToken cancellationToken = default);
+
+    // Yeni kullaniciyi host'ta acar ve secilen tenant'in varsayilan rollerini verir.
+    Task<RegisteredUserDto> RegisterAsync(RegisterDto input, CancellationToken cancellationToken = default);
+
+    // Sifre sifirlama baglantisini kullanicinin e-postasina gonderir.
+    Task SendPasswordResetCodeAsync(PasswordResetCodeDto input, CancellationToken cancellationToken = default);
+
+    // Sifre sifirlama token'inin gecerli olup olmadigini dondurur.
+    Task<bool> VerifyPasswordResetTokenAsync(PasswordResetTokenDto input, CancellationToken cancellationToken = default);
+
+    // Token'la yeni sifreyi belirler.
+    Task ResetPasswordAsync(PasswordResetDto input, CancellationToken cancellationToken = default);
+
+    // Giris yapmis kullanicinin sifresini degistirir.
+    Task ChangePasswordAsync(PasswordChangeDto input, CancellationToken cancellationToken = default);
 }
