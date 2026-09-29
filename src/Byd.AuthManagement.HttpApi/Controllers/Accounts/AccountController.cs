@@ -3,9 +3,11 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Byd.AuthManagement.Consts;
+using Byd.AuthManagement.Dtos.Invitations;
 using Byd.AuthManagement.Dtos.Logins;
 using Byd.AuthManagement.Dtos.Passwords;
 using Byd.AuthManagement.Dtos.Registrations;
+using Byd.AuthManagement.Permissions;
 using Byd.AuthManagement.Services.Accounts;
 using SystemStandards.Results;
 
@@ -141,6 +143,48 @@ public class AccountController : AuthManagementController
         [FromBody] RegisterDto input,
         CancellationToken cancellationToken = default)
         => await AppService.RegisterAsync(input, cancellationToken);
+
+    /// <summary>
+    /// Tenant acarak yeni kullaniciyi kaydeder.
+    /// </summary>
+    /// <param name="input">Acilacak tenant'in adi, kullanici adi, e-posta ve sifre.</param>
+    /// <param name="cancellationToken">Istek iptal belirteci.</param>
+    /// <remarks>
+    /// Request { TenantName, UserName, Email, Password }. Tenant acilir, tenant'ta uygulamanin tenant tarafindaki tum
+    /// izinlerini tasiyan admin rolu kurulur; kullanici host'ta acilir, bu role girer ve hemen login olabilir.
+    /// Response value { TenantId, TenantName, UserId, UserName, Email } tasir. Admin rolu varsayilan rol degildir;
+    /// tenant'a sonradan katilanlara verilmez. Tenant'a feature atamaz, organizasyon acmaz. Tenant adi, kullanici adi
+    /// ve e-posta sistem genelinde tekildir; sifre cercevenin sifre kurallarina uymalidir.
+    /// </remarks>
+    [HttpPost(AccountRoutes.RegisterTenant)]
+    [AllowAnonymous]
+    public virtual async Task<Result<RegisteredUserDto>> RegisterTenantAsync(
+        [FromBody] TenantRegisterDto input,
+        CancellationToken cancellationToken = default)
+        => await AppService.RegisterTenantAsync(input, cancellationToken);
+
+    /// <summary>
+    /// Kullaniciyi rolleriyle davet eder.
+    /// </summary>
+    /// <param name="input">Verilecek roller, kullanici adi, e-posta ve sifre belirleme baglantisinin acilacagi uygulama.</param>
+    /// <param name="cancellationToken">Istek iptal belirteci.</param>
+    /// <remarks>
+    /// Request { RoleIds, UserName, Email, AppName, ReturnUrl, ReturnUrlHash }. Tenant her rolun kendi tenant'idir;
+    /// organizasyona bagli bir rolde kullanici o organizasyona uye yapilir ve rolu uyelikle alir, bagli olmayan rol
+    /// tenant'ta dogrudan verilir. Tenant'taki davet eden yalniz kendi tenant'inin rollerini, host'taki davet eden her
+    /// tenant'in rollerini verebilir; bir rol birden fazla organizasyona bagliysa davet yapilmaz.
+    /// E-posta kayitliysa mevcut kullanici kullanilir, rolleri eklenir ve mail gitmez. Degilse kullanici host'ta
+    /// sifresiz acilir ve AppName'in sifre sifirlama sayfasina giden bir sifre belirleme baglantisi e-postasina
+    /// gonderilir; kullanici sifresini reset-password ucuyla belirleyip login olur.
+    /// Response value { UserId, UserName, Email, IsNewUser } tasir. Kullaniciyi roller disinda degistirmez, rol
+    /// kaldirmaz.
+    /// </remarks>
+    [HttpPost(AccountRoutes.InviteUser)]
+    [Authorize(AuthManagementPermissions.Users.Manage)]
+    public virtual async Task<Result<InvitedUserDto>> InviteUserAsync(
+        [FromBody] InviteUserDto input,
+        CancellationToken cancellationToken = default)
+        => await AppService.InviteUserAsync(input, cancellationToken);
 
     /// <summary>
     /// Sifre sifirlama baglantisini kullanicinin e-postasina gonderir.

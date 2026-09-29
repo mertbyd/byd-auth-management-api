@@ -21,4 +21,7 @@ public static class AuthManagementErrorCodes
 
     // Sifre ailesinin numara grubu.
     public const string PasswordGroup = RootNamespace + ":04";
+
+    // Kullanici daveti ailesinin numara grubu.
+    public const string InvitationGroup = RootNamespace + ":05";
 }

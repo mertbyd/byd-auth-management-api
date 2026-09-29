@@ -3,9 +3,11 @@ using System.Threading.Tasks;
 using FluentValidation;
 using Microsoft.AspNetCore.Identity;
 using OpenIddict.Abstractions;
+using Byd.AuthManagement.Dtos.Invitations;
 using Byd.AuthManagement.Dtos.Logins;
 using Byd.AuthManagement.Dtos.Passwords;
 using Byd.AuthManagement.Dtos.Registrations;
+using Byd.AuthManagement.Invitations;
 using Byd.AuthManagement.Logins;
 using Byd.AuthManagement.Managers.Accounts;
 using Byd.AuthManagement.Mappers.Accounts;
@@ -17,7 +19,8 @@ namespace Byd.AuthManagement.Services.Accounts;
 /// <summary>
 /// Oturum, kayit ve sifre akislarini tek bir hesap servisinde yurutur.
 /// </summary>
-// islevi: Girdileri dogrular; login, switch ve kayit kararlarini Manager'a, sifre islemlerini cerceve servislerine yonlendirir.
+// islevi: Girdileri dogrular; login, switch, kayit ve davet kararlarini Manager'a, sifre islemlerini ve sifre belirleme
+// baglantisini cerceve servislerine yonlendirir.
 // sistemdeki gorevi: Controller ile hesap dikey kesitleri arasindaki tek public giris noktasidir.
 public class AccountAppService : AuthManagementAppService, IAccountAppService
 {
@@ -41,6 +44,12 @@ public class AccountAppService : AuthManagementAppService, IAccountAppService
         LazyGetRequiredService<IValidator<RefreshTokenDto>>();
     private IValidator<RegisterDto> RegisterValidator =>
         LazyGetRequiredService<IValidator<RegisterDto>>();
+    private IValidator<TenantRegisterDto> TenantRegisterValidator =>
+        LazyGetRequiredService<IValidator<TenantRegisterDto>>();
+    private IValidator<InviteUserDto> InviteUserValidator =>
+        LazyGetRequiredService<IValidator<InviteUserDto>>();
+    private InvitationEmailer InvitationEmailer =>
+        LazyGetRequiredService<InvitationEmailer>();
     private Volo.Abp.Account.IAccountAppService AbpAccountAppService =>
         LazyGetRequiredService<Volo.Abp.Account.IAccountAppService>();
     private Volo.Abp.Account.IProfileAppService AbpProfileAppService =>
@@ -133,6 +142,37 @@ public class AccountAppService : AuthManagementAppService, IAccountAppService
         await RegisterValidator.ValidateAndThrowAsync(input, cancellationToken);
         var user = await Manager.RegisterAsync(Mapper.Map(input), cancellationToken);
         return Mapper.Map(user);
+    }
+
+    // Girdiyi dogrular, tenant'i acip kullaniciyi o tenant'in tum izinli sahip rolune baglar.
+    public virtual async Task<RegisteredUserDto> RegisterTenantAsync(
+        TenantRegisterDto input,
+        CancellationToken cancellationToken = default)
+    {
+        await TenantRegisterValidator.ValidateAndThrowAsync(input, cancellationToken);
+        var user = await Manager.RegisterTenantAsync(Mapper.Map(input), cancellationToken);
+        return Mapper.Map(user);
+    }
+
+    // Girdiyi dogrular, kullaniciyi rolleriyle davet eder; yeni kullaniciya davet sablonuyla sifre belirleme
+    // baglantisini gonderir.
+    public virtual async Task<InvitedUserDto> InviteUserAsync(
+        InviteUserDto input,
+        CancellationToken cancellationToken = default)
+    {
+        await InviteUserValidator.ValidateAndThrowAsync(input, cancellationToken);
+        var invitation = await Manager.InviteUserAsync(Mapper.Map(input), cancellationToken);
+        if (invitation.IsNewUser)
+        {
+            await InvitationEmailer.SendInvitationLinkAsync(
+                invitation,
+                input.AppName,
+                input.ReturnUrl,
+                input.ReturnUrlHash,
+                cancellationToken);
+        }
+
+        return Mapper.Map(invitation);
     }
 
     // Sifirlama baglantisini kullanicinin e-postasina gonderir.

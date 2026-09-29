@@ -7,6 +7,9 @@
     "Permission:Organizations": "Organizasyonlar",
     "Permission:Organizations.View": "Organizasyonlari goruntuleme",
     "Permission:Organizations.Manage": "Organizasyonlari yonetme",
+    "Permission:Users": "Kullanicilar",
+    "Permission:Users.Manage": "Kullanici davet etme ve rol verme",
+    "Email:UserInvitation.Subject": "Hesabınız hazır - şifrenizi belirleyin",
     "AuthManagement:010001": "Organizasyon adi zorunludur.",
     "AuthManagement:010002": "Organizasyon adi izin verilenden uzun.",
     "AuthManagement:020001": "Kullanici adi veya sifre hatali.",
@@ -26,6 +29,8 @@
     "AuthManagement:030005": "E-posta zorunludur.",
     "AuthManagement:030006": "E-posta gecerli bir adres degil.",
     "AuthManagement:030007": "Sifre zorunludur.",
+    "AuthManagement:030008": "Tenant adi zorunludur.",
+    "AuthManagement:030009": "Tenant adi izin verilenden uzun.",
     "AuthManagement:040001": "E-posta zorunludur.",
     "AuthManagement:040002": "E-posta gecerli bir adres degil.",
     "AuthManagement:040003": "Uygulama adi zorunludur.",
@@ -33,6 +38,13 @@
     "AuthManagement:040005": "Sifirlama token'i zorunludur.",
     "AuthManagement:040006": "Yeni sifre zorunludur.",
     "AuthManagement:040007": "Mevcut sifre zorunludur.",
-    "AuthManagement:040008": "Yeni sifre mevcut sifreyle ayni olamaz."
+    "AuthManagement:040008": "Yeni sifre mevcut sifreyle ayni olamaz.",
+    "AuthManagement:050001": "Rol yok ya da sizin kapsaminizdan verilemez.",
+    "AuthManagement:050002": "Rol birden fazla organizasyona bagli.",
+    "AuthManagement:050003": "En az bir rol zorunludur.",
+    "AuthManagement:050004": "Kullanici adi zorunludur.",
+    "AuthManagement:050005": "E-posta zorunludur.",
+    "AuthManagement:050006": "E-posta gecerli bir adres degil.",
+    "AuthManagement:050007": "Uygulama adi zorunludur."
   }
 }

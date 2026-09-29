@@ -27,4 +27,10 @@ public static class RegistrationExceptionCodes
 
     // Sifre bos gecilemez.
     public const string PasswordRequired = AuthManagementErrorCodes.RegistrationGroup + "0007";
+
+    // Tenant acan kayitta tenant adi bos gecilemez.
+    public const string TenantNameRequired = AuthManagementErrorCodes.RegistrationGroup + "0008";
+
+    // Tenant adi cerceve kolonunun sinirini asamaz.
+    public const string TenantNameTooLong = AuthManagementErrorCodes.RegistrationGroup + "0009";
 }

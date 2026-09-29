@@ -33,6 +33,9 @@
     <ProjectReference Include="..\..\src\Byd.AuthManagement.Application\Byd.AuthManagement.Application.csproj" />
     <ProjectReference Include="..\..\src\Byd.AuthManagement.EntityFrameworkCore\Byd.AuthManagement.EntityFrameworkCore.csproj" />
     <ProjectReference Include="..\Byd.AuthManagement.Host.Shared\Byd.AuthManagement.Host.Shared.csproj" />
+    <ProjectReference Include="..\..\..\byd-email-management-api\src\Byd.EmailManagement.Application\Byd.EmailManagement.Application.csproj" />
+    <ProjectReference Include="..\..\..\byd-email-management-api\src\Byd.EmailManagement.EntityFrameworkCore\Byd.EmailManagement.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\..\..\byd-email-management-api\src\Byd.EmailManagement.HttpApi\Byd.EmailManagement.HttpApi.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -20,9 +20,11 @@ using Byd.AuthManagement.Consts;
 using Byd.AuthManagement.EntityFrameworkCore;
 using Byd.AuthManagement.MultiTenancy;
 using Byd.AuthManagement.Options;
+using Byd.EmailManagement;
+using Byd.EmailManagement.EntityFrameworkCore;
+using Byd.EmailManagement.Options;
 using StackExchange.Redis;
 using Microsoft.OpenApi;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Volo.Abp;
 using Volo.Abp.Account;
 using Volo.Abp.AspNetCore.Mvc.UI.MultiTenancy;
@@ -35,7 +37,6 @@ using Volo.Abp.Caching.StackExchangeRedis;
 using Volo.Abp.Data;
 using Volo.Abp.EntityFrameworkCore;
 using Volo.Abp.EntityFrameworkCore.PostgreSql;
-using Volo.Abp.Emailing;
 using Volo.Abp.Localization;
 using Volo.Abp.Modularity;
 using Volo.Abp.OpenIddict;
@@ -54,6 +55,9 @@ namespace Byd.AuthManagement;
     typeof(AuthManagementApplicationModule),
     typeof(AuthManagementEntityFrameworkCoreModule),
     typeof(AuthManagementHttpApiModule),
+    typeof(EmailManagementApplicationModule),
+    typeof(EmailManagementEntityFrameworkCoreModule),
+    typeof(EmailManagementHttpApiModule),
     typeof(AbpAspNetCoreMvcUiMultiTenancyModule),
     typeof(AbpAutofacModule),
     typeof(AbpCachingStackExchangeRedisModule),
@@ -129,9 +133,8 @@ public class AuthManagementHttpApiHostModule : AbpModule
                 PasswordConsts.ResetPasswordPagePath;
         });
 
-        // Gelistirmede e-posta gonderilmez; icerik log'a yazilir.
-        if (hostingEnvironment.IsDevelopment())
-            context.Services.Replace(ServiceDescriptor.Singleton<IEmailSender, NullEmailSender>());
+        // E-postalar email modulunun gondericisinden cikar; gonderici ve SMTP ayarlari host'un kendi ayarindan gelir.
+        Configure<EmailManagementOptions>(configuration.GetSection("EmailManagement"));
 
         Configure<AbpDbContextOptions>(options =>
         {

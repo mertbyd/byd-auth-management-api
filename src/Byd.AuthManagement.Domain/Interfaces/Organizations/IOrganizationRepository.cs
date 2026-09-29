@@ -25,4 +25,9 @@ public interface IOrganizationRepository : IOrganizationUnitRepository
 
     // Kullanicinin uyesi oldugu organizasyonlari getirir.
     Task<List<OrganizationModel>> GetUserModelListAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    // Rollerden birine bagli organizasyonlari rol baglariyla birlikte getirir.
+    Task<List<OrganizationUnit>> GetListByRoleIdsAsync(
+        List<Guid> roleIds,
+        CancellationToken cancellationToken = default);
 }

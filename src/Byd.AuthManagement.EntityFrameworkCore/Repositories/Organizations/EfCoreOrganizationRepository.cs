@@ -60,6 +60,17 @@ public class EfCoreOrganizationRepository(IDbContextProvider<IIdentityDbContext>
         return await AsyncExecuter.ToListAsync(query, cancellationToken);
     }
 
+    // Rollerden birine bagli organizasyonlari rol baglariyla birlikte getirir.
+    public virtual async Task<List<OrganizationUnit>> GetListByRoleIdsAsync(
+        List<Guid> roleIds,
+        CancellationToken cancellationToken = default)
+    {
+        var query = (await GetQueryableAsync())
+            .IncludeDetails()
+            .Where(organization => organization.Roles.Any(binding => roleIds.Contains(binding.RoleId)));
+        return await AsyncExecuter.ToListAsync(query, cancellationToken);
+    }
+
     // Organizasyonu ust kaydinin adiyla ve rol verip vermedigiyle modele yansitir.
     private async Task<IQueryable<OrganizationModel>> GetModelQueryableAsync(
         CancellationToken cancellationToken = default)

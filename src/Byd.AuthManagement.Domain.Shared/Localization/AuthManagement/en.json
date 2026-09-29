@@ -7,6 +7,9 @@
     "Permission:Organizations": "Organizations",
     "Permission:Organizations.View": "View organizations",
     "Permission:Organizations.Manage": "Manage organizations",
+    "Permission:Users": "Users",
+    "Permission:Users.Manage": "Invite users and assign roles",
+    "Email:UserInvitation.Subject": "Your account is ready - set your password",
     "AuthManagement:010001": "Organization name is required.",
     "AuthManagement:010002": "Organization name is longer than allowed.",
     "AuthManagement:020001": "Invalid username or password.",
@@ -26,6 +29,8 @@
     "AuthManagement:030005": "Email is required.",
     "AuthManagement:030006": "Email is not a valid address.",
     "AuthManagement:030007": "Password is required.",
+    "AuthManagement:030008": "Tenant name is required.",
+    "AuthManagement:030009": "Tenant name is longer than allowed.",
     "AuthManagement:040001": "Email is required.",
     "AuthManagement:040002": "Email is not a valid address.",
     "AuthManagement:040003": "Application name is required.",
@@ -33,6 +38,13 @@
     "AuthManagement:040005": "Reset token is required.",
     "AuthManagement:040006": "New password is required.",
     "AuthManagement:040007": "Current password is required.",
-    "AuthManagement:040008": "New password cannot be the same as the current password."
+    "AuthManagement:040008": "New password cannot be the same as the current password.",
+    "AuthManagement:050001": "The role does not exist or cannot be assigned from your scope.",
+    "AuthManagement:050002": "The role is bound to more than one organization.",
+    "AuthManagement:050003": "At least one role is required.",
+    "AuthManagement:050004": "User name is required.",
+    "AuthManagement:050005": "Email is required.",
+    "AuthManagement:050006": "Email is not a valid address.",
+    "AuthManagement:050007": "Application name is required."
   }
 }

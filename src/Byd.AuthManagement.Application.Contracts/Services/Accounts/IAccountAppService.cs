@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Byd.AuthManagement.Dtos.Invitations;
 using Byd.AuthManagement.Dtos.Logins;
 using Byd.AuthManagement.Dtos.Passwords;
 using Byd.AuthManagement.Dtos.Registrations;
@@ -31,6 +32,12 @@ public interface IAccountAppService : IApplicationService
 
     // Yeni kullaniciyi host'ta acar ve secilen tenant'in varsayilan rollerini verir.
     Task<RegisteredUserDto> RegisterAsync(RegisterDto input, CancellationToken cancellationToken = default);
+
+    // Tenant acar ve yeni kullaniciyi o tenant'in tum izinli sahip rolune baglar.
+    Task<RegisteredUserDto> RegisterTenantAsync(TenantRegisterDto input, CancellationToken cancellationToken = default);
+
+    // Kullaniciyi rolleriyle davet eder; yeni kullaniciya sifre belirleme baglantisi gonderir.
+    Task<InvitedUserDto> InviteUserAsync(InviteUserDto input, CancellationToken cancellationToken = default);
 
     // Sifre sifirlama baglantisini kullanicinin e-postasina gonderir.
     Task SendPasswordResetCodeAsync(PasswordResetCodeDto input, CancellationToken cancellationToken = default);

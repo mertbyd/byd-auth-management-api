@@ -25,8 +25,14 @@ public static class AccountRoutes
     // Oturumu kapatan endpointin rotasidir.
     public const string Logout = "logout";
 
-    // Yeni kullanici kayit endpointinin rotasidir.
+    // Yeni kullaniciyi mevcut tenant'a kaydeden endpointin rotasidir.
     public const string Register = "register";
+
+    // Tenant acarak yeni kullaniciyi kaydeden endpointin rotasidir.
+    public const string RegisterTenant = "register-tenant";
+
+    // Kullaniciyi rolleriyle davet eden endpointin rotasidir.
+    public const string InviteUser = "invite-user";
 
     // Sifre sifirlama baglantisini e-postaya gonderen endpointin rotasidir.
     public const string SendPasswordResetCode = "send-password-reset-code";
