@@ -23,27 +23,33 @@ using Byd.AuthManagement.Options;
 using Byd.EmailManagement;
 using Byd.EmailManagement.EntityFrameworkCore;
 using Byd.EmailManagement.Options;
+using Byd.LogManagement.EntityFrameworkCore;
 using StackExchange.Redis;
 using Microsoft.OpenApi;
 using Volo.Abp;
 using Volo.Abp.Account;
+using Volo.Abp.AspNetCore.Mvc.AntiForgery;
 using Volo.Abp.AspNetCore.Mvc.UI.MultiTenancy;
 using Volo.Abp.AspNetCore.Mvc.UI.Theme.Shared;
 using Volo.Abp.AspNetCore.Serilog;
-using Volo.Abp.AuditLogging.EntityFrameworkCore;
 using Volo.Abp.Autofac;
 using Volo.Abp.Caching;
 using Volo.Abp.Caching.StackExchangeRedis;
 using Volo.Abp.Data;
 using Volo.Abp.EntityFrameworkCore;
 using Volo.Abp.EntityFrameworkCore.PostgreSql;
+using Volo.Abp.Identity;
 using Volo.Abp.Localization;
 using Volo.Abp.Modularity;
 using Volo.Abp.OpenIddict;
 using Volo.Abp.MultiTenancy;
+using Volo.Abp.PermissionManagement;
+using Volo.Abp.PermissionManagement.Identity;
 using Volo.Abp.PermissionManagement.EntityFrameworkCore;
+using Volo.Abp.PermissionManagement.HttpApi;
 using Volo.Abp.Security.Claims;
 using Volo.Abp.SettingManagement.EntityFrameworkCore;
+using Volo.Abp.TenantManagement;
 using Volo.Abp.Swashbuckle;
 using Volo.Abp.TenantManagement.EntityFrameworkCore;
 using Volo.Abp.UI.Navigation.Urls;
@@ -58,11 +64,18 @@ namespace Byd.AuthManagement;
     typeof(EmailManagementApplicationModule),
     typeof(EmailManagementEntityFrameworkCoreModule),
     typeof(EmailManagementHttpApiModule),
+    typeof(LogManagementEntityFrameworkCoreModule),
+    typeof(AbpIdentityApplicationModule),
+    typeof(AbpIdentityHttpApiModule),
+    typeof(AbpPermissionManagementApplicationModule),
+    typeof(AbpPermissionManagementHttpApiModule),
+    typeof(AbpPermissionManagementDomainIdentityModule),
+    typeof(AbpTenantManagementApplicationModule),
+    typeof(AbpTenantManagementHttpApiModule),
     typeof(AbpAspNetCoreMvcUiMultiTenancyModule),
     typeof(AbpAutofacModule),
     typeof(AbpCachingStackExchangeRedisModule),
     typeof(AbpEntityFrameworkCorePostgreSqlModule),
-    typeof(AbpAuditLoggingEntityFrameworkCoreModule),
     typeof(AbpAspNetCoreSerilogModule),
     typeof(AbpSwashbuckleModule)
     )]
@@ -136,6 +149,12 @@ public class AuthManagementHttpApiHostModule : AbpModule
         // E-postalar email modulunun gondericisinden cikar; gonderici ve SMTP ayarlari host'un kendi ayarindan gelir.
         Configure<EmailManagementOptions>(configuration.GetSection("EmailManagement"));
 
+        // Host yalniz bearer tabanli API sunar; cookie tabanli CSRF dogrulamasi Swagger POST isteklerine uygulanmaz.
+        Configure<AbpAntiForgeryOptions>(options =>
+        {
+            options.AutoValidate = false;
+        });
+
         Configure<AbpDbContextOptions>(options =>
         {
             options.UseNpgsql();
@@ -168,6 +187,18 @@ public class AuthManagementHttpApiHostModule : AbpModule
                 options.SwaggerDoc("v1", new OpenApiInfo {Title = "AuthManagement API", Version = "v1"});
                 options.DocInclusionPredicate((docName, description) => true);
                 options.CustomSchemaIds(type => type.FullName);
+                // Hesap login ucunun verdigi access token Swagger'da elle girilir; OAuth kod akisinin giris sayfasi yoktur.
+                options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    BearerFormat = "JWT",
+                    In = ParameterLocation.Header
+                });
+                options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+                {
+                    { new OpenApiSecuritySchemeReference("Bearer", document), [] }
+                });
             });
 
         // Modul yalniz Ingilizce ve Turkce kaynak tasir; beyan edilen dil listesi de bu ikisiyle sinirlidir.
