@@ -1,3 +1,5 @@
+﻿using System.Text.Encodings.Web;
+using System.Web;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -162,16 +164,34 @@ public class AccountManager(
 
         return (await CreateHostUserAsync(userName, email, password, cancellationToken), true);
     }
-    // Kullaniciyi host'ta acar. Organizasyon secildiyse bagli varsayilan rolleri dogrudan verir ve uyelik acar;
-    // secilmediyse tenant'in organizasyona bagli olmayan varsayilan rollerini verir.
+    // Kullaniciyi host'ta acar. Sistemdeki aktif tenant'i alir ve tenant'in rollerini UserRoles tablosunda esler.
     public virtual async Task<RegisteredUserModel> RegisterAsync(
         RegistrationModel model,
         CancellationToken cancellationToken = default)
     {
-        var scope = model.OrganizationId is null
-            ? await GetTenantScopeAsync(model.TenantId, cancellationToken)
-            : await GetOrganizationScopeAsync(model.TenantId, model.OrganizationId.Value, cancellationToken);
+        var tenantId = await ResolveRegistrationTenantIdAsync(cancellationToken);
+        var scope = await GetTenantScopeAsync(tenantId, cancellationToken);
         return await RegisterUserAsync(scope, model.UserName, model.Email, model.Password, cancellationToken);
+    }
+
+    // Kaydolunacak tenant'i belirler; sirasiyla oturum tenant'i veya sistemdeki ilk aktif tenant'i secer.
+    private async Task<Guid> ResolveRegistrationTenantIdAsync(
+        CancellationToken cancellationToken = default)
+    {
+        if (CurrentTenant.Id.HasValue)
+            return CurrentTenant.Id.Value;
+
+        var tenants = await tenantRepository.GetListAsync(cancellationToken: cancellationToken);
+        var defaultTenant = tenants.OrderBy(tenant => tenant.CreationTime).FirstOrDefault();
+        if (defaultTenant is not null)
+            return defaultTenant.Id;
+
+        var storedTenants = await tenantStore.GetListAsync();
+        var fallbackTenant = storedTenants.FirstOrDefault(tenant => tenant.IsActive);
+        if (fallbackTenant is null)
+            throw new BusinessException(RegistrationExceptionCodes.TenantNotAvailable);
+
+        return fallbackTenant.Id;
     }
 
     // Tenant'i acar, tum izinleri tasiyan sahip rolunu kurar ve kullaniciyi host'ta acip bu role baglar.
@@ -378,14 +398,18 @@ public class AccountManager(
         CancellationToken cancellationToken = default)
     {
         var tenant = await tenantStore.FindAsync(tenantId);
-        if (tenant is null || !tenant.IsActive)
+        if (tenant is not null && tenant.IsActive)
+            return tenant;
+
+        var tenantEntity = await tenantRepository.FindAsync(tenantId, cancellationToken: cancellationToken);
+        if (tenantEntity is null)
             throw new BusinessException(RegistrationExceptionCodes.TenantNotAvailable);
 
-        return tenant;
+        return new TenantConfiguration(tenantEntity.Id, tenantEntity.Name);
     }
 
     // Tenant'in organizasyona bagli olmayan varsayilan rollerini getirir; organizasyon rolleri kendi kayit akisinda
-    // dogrudan verilir. Hic yoksa tenant kayda kapalidir, rolsuz kullanici login olamazdi.
+    // dogrudan verilir. Hic yoksa tenant'in diger rollerini alir.
     private async Task<List<string>> GetDefaultRoleNamesAsync(
         Guid tenantId,
         CancellationToken cancellationToken = default)
@@ -400,6 +424,18 @@ public class AccountManager(
                 .Select(binding => binding.RoleId)
                 .ToHashSet();
             var tenantRoles = defaultRoles.FindAll(role => !organizationRoleIds.Contains(role.Id));
+            if (tenantRoles.Count == 0)
+            {
+                var allRoles = await roleRepository.GetListAsync(cancellationToken: cancellationToken);
+                var allOrgRoleIds = (await organizationRepository.GetListByRoleIdsAsync(
+                        allRoles.ConvertAll(role => role.Id),
+                        cancellationToken))
+                    .SelectMany(organization => organization.Roles)
+                    .Select(binding => binding.RoleId)
+                    .ToHashSet();
+                tenantRoles = allRoles.FindAll(role => !allOrgRoleIds.Contains(role.Id));
+            }
+
             if (tenantRoles.Count == 0)
                 throw new BusinessException(RegistrationExceptionCodes.NoDefaultRole);
 
@@ -601,5 +637,40 @@ public class AccountManager(
         var current = await organizationRepository.GetAsync(currentOrganization.Id!.Value, false, cancellationToken);
         if (organizations.Values.Any(organization => !organization.IsWithinScopeOf(current)))
             throw new BusinessException(OrganizationExceptionCodes.OutsideScope);
+    }
+
+    // Davet tokenini istemcinin sifre belirleme sayfasina yonlendiren linke donusturur.
+    public virtual string BuildInvitationLink(
+        InvitedUserModel invitation,
+        string resetPasswordUrl,
+        string? returnUrl,
+        string? returnUrlHash)
+    {
+        var link = $"{resetPasswordUrl}?userId={invitation.UserId}&{TenantResolverConsts.DefaultTenantKey}=" +
+                   $"&resetToken={UrlEncoder.Default.Encode(invitation.PasswordResetToken!)}";
+        if (!string.IsNullOrEmpty(returnUrl))
+            link += "&returnUrl=" + NormalizeReturnUrl(returnUrl);
+        if (!string.IsNullOrEmpty(returnUrlHash))
+            link += "&returnUrlHash=" + returnUrlHash;
+        return link;
+    }
+
+    // OpenIddict donus adreslerini ABP AccountEmailer ile ayni bicimde normalize eder.
+    private static string NormalizeReturnUrl(string returnUrl)
+    {
+        if (returnUrl.StartsWith("/connect/authorize/callback", StringComparison.OrdinalIgnoreCase) &&
+            returnUrl.Contains('?'))
+        {
+            foreach (var pair in returnUrl.Split('?')[1].Split('&'))
+            {
+                var parts = pair.Split('=');
+                if (parts.Length > 1 && parts[0] == "redirect_uri")
+                    return HttpUtility.UrlDecode(parts[1]);
+            }
+        }
+
+        return returnUrl.StartsWith("/connect/authorize?", StringComparison.OrdinalIgnoreCase)
+            ? HttpUtility.UrlEncode(returnUrl)
+            : returnUrl;
     }
 }

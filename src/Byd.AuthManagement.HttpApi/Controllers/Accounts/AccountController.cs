@@ -1,4 +1,4 @@
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -127,17 +127,13 @@ public class AccountController : AuthManagementController
     }
 
     /// <summary>
-    /// Yeni kullaniciyi secilen tenant'a, istenirse tenant'taki bir organizasyona kaydeder.
+    /// Yeni kullaniciyi sistemdeki aktif tenant'a ve tenant rollerine kaydeder.
     /// </summary>
-    /// <param name="input">Kaydolunacak tenant, istege bagli organizasyon, kullanici adi, e-posta ve sifre.</param>
+    /// <param name="input">Kullanici adi, e-posta ve sifre.</param>
     /// <param name="cancellationToken">Istek iptal belirteci.</param>
     /// <remarks>
-    /// Request { TenantId, OrganizationId, UserName, Email, Password }. Kullanici host'ta acilir ve hemen login olabilir.
-    /// OrganizationId bossa tenant'in organizasyona bagli olmayan varsayilan (IsDefault) rolleri verilir. Doluysa
-    /// organizasyona bagli varsayilan roller dogrudan verilir ve organizasyon secilebilir olsun diye uyelik acilir.
-    /// Organizasyonda bagli varsayilan rol yoksa organizasyon kayda kapalidir (030011).
-    /// Response value { TenantId, TenantName, OrganizationId, OrganizationName, UserId, UserName, Email } tasir.
-    /// Tenant yoksa, pasifse, tenant'ta varsayilan rol yoksa ya da organizasyon tenant'ta yoksa kayit yapilmaz.
+    /// Request { UserName, Email, Password }. Kullanici host'ta acilir, sistemdeki aktif tenant belirlenir ve tenant rolleri UserRoles ile eslenir.
+    /// Response value { TenantId, TenantName, UserId, UserName, Email } tasir.
     /// Kullanici adi ve e-posta sistem genelinde tekildir; sifre cercevenin sifre kurallarina uymalidir.
     /// </remarks>
     [HttpPost(AccountRoutes.Register)]

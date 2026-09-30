@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using FluentValidation;
 using Microsoft.AspNetCore.Identity;
 using OpenIddict.Abstractions;
+using Byd.AuthManagement.Consts;
 using Byd.AuthManagement.Dtos.Invitations;
 using Byd.AuthManagement.Dtos.Logins;
 using Byd.AuthManagement.Dtos.Passwords;
@@ -10,7 +11,9 @@ using Byd.AuthManagement.Dtos.Registrations;
 using Byd.AuthManagement.Logins;
 using Byd.AuthManagement.Managers.Accounts;
 using Byd.AuthManagement.Mappers.Accounts;
+using Byd.EmailManagement.Managers.Emailing;
 using Volo.Abp.Account.Emailing;
+using Volo.Abp.UI.Navigation.Urls;
 using Volo.Abp.Users;
 using IdentityUser = Volo.Abp.Identity.IdentityUser;
 
@@ -48,8 +51,10 @@ public class AccountAppService : AuthManagementAppService, IAccountAppService
         LazyGetRequiredService<IValidator<TenantRegisterDto>>();
     private IValidator<InviteUserDto> InviteUserValidator =>
         LazyGetRequiredService<IValidator<InviteUserDto>>();
-    private IAccountEmailer AccountEmailer =>
-        LazyGetRequiredService<IAccountEmailer>();
+    private EmailManager EmailManager =>
+        LazyGetRequiredService<EmailManager>();
+    private IAppUrlProvider AppUrlProvider =>
+        LazyGetRequiredService<IAppUrlProvider>();
     private Volo.Abp.Account.IAccountAppService AbpAccountAppService =>
         LazyGetRequiredService<Volo.Abp.Account.IAccountAppService>();
     private Volo.Abp.Account.IProfileAppService AbpProfileAppService =>
@@ -154,8 +159,7 @@ public class AccountAppService : AuthManagementAppService, IAccountAppService
         return Mapper.Map(user);
     }
 
-    // Girdiyi dogrular, kullaniciyi rolleriyle davet eder; yeni kullaniciya ABP'nin merkezi sifre belirleme
-    // e-postasini gonderir.
+    // Girdiyi dogrular, kullaniciyi rolleriyle davet eder; yeni kullaniciya davet sablonuyla sifre belirleme linki gonderir.
     public virtual async Task<InvitedUserDto> InviteUserAsync(
         InviteUserDto input,
         CancellationToken cancellationToken = default)
@@ -164,12 +168,17 @@ public class AccountAppService : AuthManagementAppService, IAccountAppService
         var invitation = await Manager.InviteUserAsync(Mapper.Map(input), cancellationToken);
         if (invitation.IsNewUser)
         {
-            await AccountEmailer.SendPasswordResetLinkAsync(
-                invitation.User,
-                invitation.PasswordResetToken!,
-                input.AppName,
+            var resetPasswordUrl = await AppUrlProvider.GetResetPasswordUrlAsync(input.AppName);
+            var link = Manager.BuildInvitationLink(
+                invitation,
+                resetPasswordUrl,
                 input.ReturnUrl,
                 input.ReturnUrlHash);
+            await EmailManager.SendDatabaseTemplateAsync(
+                [invitation.Email],
+                InvitationConsts.EmailTemplateName,
+                new { name = invitation.UserName, link },
+                cancellationToken: cancellationToken);
         }
 
         return Mapper.Map(invitation);

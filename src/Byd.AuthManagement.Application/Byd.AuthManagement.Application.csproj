@@ -18,5 +18,6 @@
     <ProjectReference Include="..\Byd.AuthManagement.Application.Contracts\Byd.AuthManagement.Application.Contracts.csproj" />
     <ProjectReference Include="..\Byd.AuthManagement.Domain\Byd.AuthManagement.Domain.csproj" />
     <ProjectReference Include="..\..\..\byd-core-extensions-api\src\Byd.CoreExtensions.Application\Byd.CoreExtensions.Application.csproj" />
+    <ProjectReference Include="..\..\..\byd-email-management-api\src\Byd.EmailManagement.Domain\Byd.EmailManagement.Domain.csproj" />
   </ItemGroup>
 </Project>
