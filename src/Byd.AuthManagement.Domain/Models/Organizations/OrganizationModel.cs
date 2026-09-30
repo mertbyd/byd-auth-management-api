@@ -7,7 +7,7 @@ namespace Byd.AuthManagement.Models.Organizations;
 /// </summary>
 // islevi: Organizasyonun kimligini, agactaki yerini, ust kaydinin adini ve audit zamanlarini tek satirda tasir.
 // sistemdeki gorevi: Repository projeksiyonunun cikisidir; ust ad ayri sorguyla cozulmez.
-public sealed class OrganizationModel
+public class OrganizationModel
 {
     public Guid Id { get; set; }
     public Guid? TenantId { get; set; }

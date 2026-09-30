@@ -1,4 +1,5 @@
 using System;
+using Byd.CoreExtensions.Scopes;
 
 namespace Byd.AuthManagement.Dtos.Logins;
 
@@ -12,4 +13,6 @@ public class CurrentLoginRoleDto
     public Guid Id { get; set; }
 
     public string Name { get; set; } = default!;
+
+    public ScopeLevel ScopeLevel { get; set; }
 }

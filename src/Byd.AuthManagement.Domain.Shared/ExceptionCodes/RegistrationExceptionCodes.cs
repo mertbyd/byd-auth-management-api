@@ -37,6 +37,6 @@ public static class RegistrationExceptionCodes
     // Secilen organizasyon secilen tenant'ta yok.
     public const string OrganizationNotAvailable = AuthManagementErrorCodes.RegistrationGroup + "0010";
 
-    // Organizasyon kayda kapali: bagli rolu yok ya da varsayilan olmayan bir rol bagli; uyelik o rolu de verirdi.
+    // Organizasyon kayda kapali: bagli varsayilan rolu yok.
     public const string OrganizationNotOpen = AuthManagementErrorCodes.RegistrationGroup + "0011";
 }

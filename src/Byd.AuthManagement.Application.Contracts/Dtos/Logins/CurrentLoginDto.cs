@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Byd.CoreExtensions.Scopes;
 
 namespace Byd.AuthManagement.Dtos.Logins;
 
@@ -19,6 +20,8 @@ public class CurrentLoginDto
     public string? OrganizationName { get; set; }
 
     public Guid UserId { get; set; }
+
+    public ScopeLevel ScopeLevel { get; set; }
 
     public string UserName { get; set; } = default!;
 

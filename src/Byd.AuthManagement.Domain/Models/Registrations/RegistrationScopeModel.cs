@@ -8,8 +8,7 @@ namespace Byd.AuthManagement.Models.Registrations;
 /// </summary>
 // islevi: Kayitta acilan ya da secilen tenant'i adiyla, varsa katilinacak organizasyonu ve dogrudan verilecek rol
 // adlarini tasir.
-// sistemdeki gorevi: Kayit yollarinin ortak ciktisidir; kalan adimlar bunu kullanir. Organizasyon rolleri uyelikle
-// geldigi icin organizasyonlu kayitta rol adi tasinmaz.
+// sistemdeki gorevi: Kayit yollarinin ortak ciktisidir; kalan adimlar dogrudan verilecek rol adlarini buradan okur.
 public sealed class RegistrationScopeModel
 {
     public Guid TenantId { get; set; }

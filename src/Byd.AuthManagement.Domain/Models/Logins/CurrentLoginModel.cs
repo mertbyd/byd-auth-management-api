@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Byd.AuthManagement.Models.Organizations;
-using Volo.Abp.Identity;
+using Byd.CoreExtensions.Scopes;
 
 namespace Byd.AuthManagement.Models.Logins;
 
@@ -16,11 +16,12 @@ public sealed class CurrentLoginModel
     public string? TenantName { get; set; }
     public Guid? OrganizationId { get; set; }
     public string? OrganizationName { get; set; }
+    public ScopeLevel ScopeLevel { get; set; }
     public Guid UserId { get; set; }
     public string UserName { get; set; } = default!;
     public string? Name { get; set; }
     public string? Surname { get; set; }
     public string? Email { get; set; }
-    public List<IdentityRole> Roles { get; set; } = [];
+    public List<CurrentLoginRoleModel> Roles { get; set; } = [];
     public List<OrganizationModel> Organizations { get; set; } = [];
 }

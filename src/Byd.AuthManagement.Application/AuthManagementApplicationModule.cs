@@ -11,7 +11,6 @@ using Volo.Abp.Mapperly;
 using Volo.Abp.Modularity;
 using Volo.Abp.OpenIddict;
 using Volo.Abp.Application;
-using Volo.Abp.VirtualFileSystem;
 
 namespace Byd.AuthManagement;
 
@@ -41,12 +40,6 @@ public class AuthManagementApplicationModule : AbpModule
         Configure<AbpOpenIddictClaimsPrincipalOptions>(options =>
         {
             options.ClaimsPrincipalHandlers.Insert(0, typeof(LoginScopeClaimsPrincipalHandler));
-        });
-
-        // Davet e-postasi sablonlari projeye gomulu dosyalardir.
-        Configure<AbpVirtualFileSystemOptions>(options =>
-        {
-            options.FileSets.AddEmbedded<AuthManagementApplicationModule>();
         });
     }
 }

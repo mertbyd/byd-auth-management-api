@@ -16,5 +16,6 @@ public partial class OrganizationMapper
     public partial OrganizationCreateModel Map(CreateOrganizationDto source);
     public partial OrganizationUpdateModel Map(UpdateOrganizationDto source);
     public partial OrganizationDto Map(OrganizationModel source);
+    public partial CreatedOrganizationDto Map(CreatedOrganizationModel source);
     public partial List<OrganizationDto> Map(List<OrganizationModel> source);
 }

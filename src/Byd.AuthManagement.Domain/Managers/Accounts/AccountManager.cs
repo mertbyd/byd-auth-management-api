@@ -7,13 +7,16 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Byd.AuthManagement.Consts;
 using Byd.AuthManagement.ExceptionCodes;
+using Byd.AuthManagement.Extensions.Accounts;
+using Byd.AuthManagement.Extensions.Organizations;
 using Byd.AuthManagement.Interfaces.Organizations;
-using Byd.AuthManagement.Managers.Organizations;
 using Byd.AuthManagement.Models.Invitations;
 using Byd.AuthManagement.Models.Logins;
+using Byd.AuthManagement.Models.Organizations;
 using Byd.AuthManagement.Models.Registrations;
 using Byd.CoreExtensions.Consts;
 using Byd.CoreExtensions.Interfaces;
+using Byd.CoreExtensions.Scopes;
 using Volo.Abp;
 using Volo.Abp.Authorization.Permissions;
 using Volo.Abp.Data;
@@ -42,7 +45,6 @@ public class AccountManager(
     IIdentityUserRepository userRepository,
     IIdentityRoleRepository roleRepository,
     IOrganizationRepository organizationRepository,
-    OrganizationManager organizationManager,
     ITenantManager tenantManager,
     ITenantRepository tenantRepository,
     ITenantStore tenantStore,
@@ -77,10 +79,13 @@ public class AccountManager(
         using var tenantFilter = dataFilter.Disable<IMultiTenant>();
         var roles = await GetDirectRolesAsync(userId, cancellationToken);
         var organizations = await organizationRepository.GetUserModelListAsync(userId, cancellationToken);
+        var roleOrganizations = await GetRoleOrganizationsAsync(
+            roles.Select(role => role.Id),
+            cancellationToken);
         var tenantIds = GetTenantIds(roles, organizations.Select(organization => organization.TenantId));
         return new LoginScopeModel
         {
-            Tenants = BuildTenants(tenantIds, roles, await tenantStore.GetListAsync()),
+            Tenants = BuildTenants(tenantIds, roles, roleOrganizations.Keys, await tenantStore.GetListAsync()),
             Organizations = organizations
         };
     }
@@ -120,6 +125,7 @@ public class AccountManager(
             TenantName = selectedTenantId is null ? null : (await tenantStore.FindAsync(selectedTenantId.Value))?.Name,
             OrganizationId = organization?.Id,
             OrganizationName = organization?.DisplayName,
+            ScopeLevel = ResolveScopeLevel(selectedTenantId, organization),
             Roles = scopeRoles
         };
     }
@@ -128,23 +134,36 @@ public class AccountManager(
     {
         var userId = currentUser.GetId();
         var roleIds = currentUser.FindClaims(RoleClaimTypes.RoleId).Select(claim => Guid.Parse(claim.Value));
-        return new CurrentLoginModel
-        {
-            TenantId = CurrentTenant.Id,
-            TenantName = CurrentTenant.Name,
-            OrganizationId = currentOrganization.Id,
-            OrganizationName = currentOrganization.Name,
-            UserId = userId,
-            UserName = currentUser.UserName!,
-            Name = currentUser.Name,
-            Surname = currentUser.SurName,
-            Email = currentUser.Email,
-            Roles = await roleRepository.GetListAsync(roleIds, cancellationToken),
-            Organizations = await organizationManager.GetUserOrganizationsAsync(userId, cancellationToken)
-        };
+        var roles = await roleRepository.GetListAsync(roleIds, cancellationToken);
+        var organization = currentOrganization.Id is null
+            ? null
+            : await organizationRepository.FindAsync(currentOrganization.Id.Value, false, cancellationToken);
+        return currentUser.ToCurrentLoginModel(
+            userId,
+            CurrentTenant.Id,
+            CurrentTenant.Name,
+            currentOrganization.Id,
+            currentOrganization.Name,
+            ResolveScopeLevel(CurrentTenant.Id, organization),
+            await BuildRoleModelsAsync(roles, cancellationToken),
+            await GetUserOrganizationsAsync(userId, cancellationToken));
     }
-    // Kullaniciyi host'ta acar. Organizasyon secildiyse kullanici organizasyona uye olur ve organizasyonun varsayilan
-    // rollerini uyelikle alir; secilmediyse tenant'in organizasyona bagli olmayan varsayilan rollerini alir.
+
+    // Organizasyon kurulurken e-posta kayitliysa host hesabini korur; degilse sifreli yeni hesap acar.
+    public virtual async Task<(IdentityUser User, bool IsNewUser)> FindOrCreateHostUserAsync(
+        string userName,
+        string email,
+        string password,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await FindHostUserByEmailAsync(email);
+        if (user is not null)
+            return (user, false);
+
+        return (await CreateHostUserAsync(userName, email, password, cancellationToken), true);
+    }
+    // Kullaniciyi host'ta acar. Organizasyon secildiyse bagli varsayilan rolleri dogrudan verir ve uyelik acar;
+    // secilmediyse tenant'in organizasyona bagli olmayan varsayilan rollerini verir.
     public virtual async Task<RegisteredUserModel> RegisterAsync(
         RegistrationModel model,
         CancellationToken cancellationToken = default)
@@ -173,13 +192,11 @@ public class AccountManager(
         var roles = await GetInvitableRolesAsync(model.RoleIds, cancellationToken);
         var roleOrganizations = await GetRoleOrganizationsAsync(model.RoleIds, cancellationToken);
         var (user, isNewUser) = await FindOrCreateInvitedUserAsync(model.UserName, model.Email, cancellationToken);
-        await AddTenantRolesAsync(user, roles.FindAll(role => !roleOrganizations.ContainsKey(role.Id)), cancellationToken);
+        await AddTenantRolesAsync(user, roles, cancellationToken);
         await AddOrganizationMembershipsAsync(user, roleOrganizations.Values, cancellationToken);
         return new InvitedUserModel
         {
-            UserId = user.Id,
-            UserName = user.UserName,
-            Email = user.Email,
+            User = user,
             IsNewUser = isNewUser,
             PasswordResetToken = isNewUser ? await userManager.GeneratePasswordResetTokenAsync(user) : null
         };
@@ -214,13 +231,17 @@ public class AccountManager(
     private static List<LoginTenantOptionModel> BuildTenants(
         List<Guid?> tenantIds,
         List<IdentityRole> roles,
+        IEnumerable<Guid> organizationRoleIds,
         IReadOnlyList<TenantConfiguration> tenants)
-        => tenantIds.ConvertAll(id => new LoginTenantOptionModel
+    {
+        var boundRoleIds = organizationRoleIds.ToHashSet();
+        return tenantIds.ConvertAll(id => new LoginTenantOptionModel
         {
             Id = id,
             Name = tenants.FirstOrDefault(tenant => tenant.Id == id)?.Name,
-            HasRole = roles.Exists(role => role.TenantId == id)
+            HasRole = roles.Exists(role => role.TenantId == id && !boundRoleIds.Contains(role.Id))
         });
+    }
 
     // Tenant ya da tenant'taki organizasyon birden fazla secenekken secilmediyse secim eksiktir.
     private static bool RequiresSelection(LoginScopeModel scope, Guid? tenantId, Guid? organizationId)
@@ -258,17 +279,22 @@ public class AccountManager(
                ?? throw new BusinessException(LoginExceptionCodes.ScopeNotAvailable);
     }
 
-    // Tenant'taki dogrudan rollere secilen organizasyonun rollerini ekler.
+    // Tenant'taki bagimsiz dogrudan rollerle secilen organizasyona bagli dogrudan rolleri toplar.
     private async Task<List<IdentityRole>> GetScopeRolesAsync(
         List<IdentityRole> directRoles,
         Guid? tenantId,
         OrganizationUnit? organization,
         CancellationToken cancellationToken = default)
     {
-        List<IdentityRole> organizationRoles = organization is null
-            ? []
-            : await roleRepository.GetListAsync(organization.Roles.Select(role => role.RoleId), cancellationToken);
-        return [.. directRoles.Where(role => role.TenantId == tenantId).UnionBy(organizationRoles, role => role.Id)];
+        var roleOrganizations = await GetRoleOrganizationsAsync(
+            directRoles.Select(role => role.Id),
+            cancellationToken);
+        return
+        [
+            .. directRoles.Where(role => role.TenantId == tenantId)
+                .Where(role => !roleOrganizations.TryGetValue(role.Id, out var boundOrganization)
+                               || boundOrganization.Id == organization?.Id)
+        ];
     }
 
     // Tenant'i acar ve tum izinleri tasiyan sahip rolunu kurar; kullanici bu role girer.
@@ -280,12 +306,7 @@ public class AccountManager(
             await tenantManager.CreateAsync(tenantName),
             cancellationToken: cancellationToken);
         await CreateOwnerRoleAsync(tenant.Id, cancellationToken);
-        return new RegistrationScopeModel
-        {
-            TenantId = tenant.Id,
-            TenantName = tenant.Name,
-            RoleNames = [RegistrationConsts.OwnerRoleName]
-        };
+        return tenant.ToRegistrationScopeModel([RegistrationConsts.OwnerRoleName]);
     }
 
     // Sahip rolu silinemez rol olarak acilir ve uygulamanin tenant tarafindaki tum izinlerini alir; varsayilan rol
@@ -326,16 +347,10 @@ public class AccountManager(
         CancellationToken cancellationToken = default)
     {
         var tenant = await GetActiveTenantAsync(tenantId, cancellationToken);
-        return new RegistrationScopeModel
-        {
-            TenantId = tenant.Id,
-            TenantName = tenant.Name,
-            RoleNames = await GetDefaultRoleNamesAsync(tenant.Id, cancellationToken)
-        };
+        return tenant.ToRegistrationScopeModel(await GetDefaultRoleNamesAsync(tenant.Id, cancellationToken));
     }
 
-    // Organizasyon secilen tenant'ta olmali ve kayda acik olmali: bagli rolleri olmali ve hepsi varsayilan olmali, cunku
-    // uyelik organizasyonun butun rollerini verir.
+    // Organizasyon secilen tenant'ta olmali ve en az bir bagli varsayilan rolle kayda acik olmali.
     private async Task<RegistrationScopeModel> GetOrganizationScopeAsync(
         Guid tenantId,
         Guid organizationId,
@@ -347,16 +362,13 @@ public class AccountManager(
             var organization = await organizationRepository.FindAsync(organizationId, includeDetails: true, cancellationToken)
                                ?? throw new BusinessException(RegistrationExceptionCodes.OrganizationNotAvailable);
             var roles = await roleRepository.GetListAsync(organization.Roles.Select(binding => binding.RoleId), cancellationToken);
-            if (roles.Count == 0 || roles.Exists(role => !role.IsDefault))
+            var defaultRoles = roles.FindAll(role => role.IsDefault);
+            if (defaultRoles.Count == 0)
                 throw new BusinessException(RegistrationExceptionCodes.OrganizationNotOpen);
 
-            return new RegistrationScopeModel
-            {
-                TenantId = tenant.Id,
-                TenantName = tenant.Name,
-                OrganizationId = organization.Id,
-                OrganizationName = organization.DisplayName
-            };
+            return tenant.ToRegistrationScopeModel(
+                organization,
+                defaultRoles.ConvertAll(role => role.Name));
         }
     }
 
@@ -372,8 +384,8 @@ public class AccountManager(
         return tenant;
     }
 
-    // Tenant'in organizasyona bagli olmayan varsayilan rollerini getirir; organizasyona bagli varsayilan rol o
-    // organizasyona kayitta uyelikle gelir. Hic yoksa tenant kayda kapalidir, rolsuz kullanici login olamazdi.
+    // Tenant'in organizasyona bagli olmayan varsayilan rollerini getirir; organizasyon rolleri kendi kayit akisinda
+    // dogrudan verilir. Hic yoksa tenant kayda kapalidir, rolsuz kullanici login olamazdi.
     private async Task<List<string>> GetDefaultRoleNamesAsync(
         Guid tenantId,
         CancellationToken cancellationToken = default)
@@ -407,20 +419,23 @@ public class AccountManager(
             roles.Exists(role => CurrentTenant.Id is not null && role.TenantId != CurrentTenant.Id))
             throw new BusinessException(InvitationExceptionCodes.RoleNotAvailable);
 
+        await EnsureRolesWithinCurrentAsync(roles, cancellationToken);
+
         return roles;
     }
 
     // Organizasyona bagli rolu organizasyonuyla eslestirir; bir rol birden cok organizasyona bagliysa kullanicinin
     // hangisine uye yapilacagi belirsiz oldugu icin davet reddedilir.
     private async Task<Dictionary<Guid, OrganizationUnit>> GetRoleOrganizationsAsync(
-        List<Guid> roleIds,
+        IEnumerable<Guid> roleIds,
         CancellationToken cancellationToken = default)
     {
+        var ids = roleIds.Distinct().ToList();
         using var tenantFilter = dataFilter.Disable<IMultiTenant>();
-        var organizations = await organizationRepository.GetListByRoleIdsAsync(roleIds, cancellationToken);
+        var organizations = await organizationRepository.GetListByRoleIdsAsync(ids, cancellationToken);
         var bindings = organizations
             .SelectMany(organization => organization.Roles
-                .Where(binding => roleIds.Contains(binding.RoleId))
+                .Where(binding => ids.Contains(binding.RoleId))
                 .Select(binding => (binding.RoleId, Organization: organization)))
             .ToList();
         if (bindings.GroupBy(binding => binding.RoleId).Any(group => group.Count() > 1))
@@ -436,20 +451,17 @@ public class AccountManager(
         string email,
         CancellationToken cancellationToken = default)
     {
-        using (CurrentTenant.Change(null))
+        var user = await FindHostUserByEmailAsync(email);
+        if (user is not null)
         {
-            var user = await userManager.FindByEmailAsync(email);
-            if (user is not null)
+            using (CurrentTenant.Change(null))
             {
                 await userRepository.EnsureCollectionLoadedAsync(user, item => item.Roles, cancellationToken);
-                return (user, false);
             }
-
-            await identityOptions.SetAsync();
-            user = new IdentityUser(GuidGenerator.Create(), userName, email);
-            (await userManager.CreateAsync(user)).CheckErrors();
-            return (user, true);
+            return (user, false);
         }
+
+        return (await CreateHostUserAsync(userName, email, cancellationToken), true);
     }
 
     // Tenant rollerini rolun kendi tenant'inda dogrudan verir; kullanicinin zaten sahip oldugu rol atlanir.
@@ -465,17 +477,14 @@ public class AccountManager(
         }
     }
 
-    // Organizasyon rolu uyelikle gelir; kullanici organizasyona kendi tenant'inda uye yapilir, zaten uyeyse atlanir.
+    // Organizasyona bagli rol icin secilebilirligi saglayan uyelik kendi tenant'inda acilir, zaten uyeyse atlanir.
     private async Task AddOrganizationMembershipsAsync(
         IdentityUser user,
         IEnumerable<OrganizationUnit> organizations,
         CancellationToken cancellationToken = default)
     {
         foreach (var organization in organizations.DistinctBy(organization => organization.Id))
-        {
-            using (CurrentTenant.Change(organization.TenantId))
-                await organizationManager.AddMemberAsync(organization.Id, user.Id, cancellationToken);
-        }
+            await userManager.AddToOrganizationAsync(CurrentTenant, user, organization, cancellationToken);
     }
 
     // Kullaniciyi host'ta acar; kapsamin tenant'inda kapsamin rollerine baglar, organizasyon varsa ona uye yapar.
@@ -493,19 +502,16 @@ public class AccountManager(
                 (await userManager.AddToRolesAsync(user, scope.RoleNames)).CheckErrors();
 
             if (scope.OrganizationId is not null)
-                await organizationManager.AddMemberAsync(scope.OrganizationId.Value, user.Id, cancellationToken);
+            {
+                var organization = await organizationRepository.GetAsync(
+                    scope.OrganizationId.Value,
+                    includeDetails: false,
+                    cancellationToken);
+                await userManager.AddToOrganizationAsync(CurrentTenant, user, organization, cancellationToken);
+            }
         }
 
-        return new RegisteredUserModel
-        {
-            TenantId = scope.TenantId,
-            TenantName = scope.TenantName,
-            OrganizationId = scope.OrganizationId,
-            OrganizationName = scope.OrganizationName,
-            UserId = user.Id,
-            UserName = user.UserName,
-            Email = user.Email
-        };
+        return scope.ToRegisteredUserModel(user);
     }
 
     // Kullaniciyi host'ta, cercevenin sifre ve tekillik kurallariyla acar.
@@ -514,13 +520,86 @@ public class AccountManager(
         string email,
         string password,
         CancellationToken cancellationToken = default)
+        => await CreateHostUserAsync(userName, email, password, hasPassword: true, cancellationToken);
+
+    // Kullaniciyi host'ta sifresiz acar; davet sonrasi sifre belirleme akisi bunu kullanir.
+    private async Task<IdentityUser> CreateHostUserAsync(
+        string userName,
+        string email,
+        CancellationToken cancellationToken = default)
+        => await CreateHostUserAsync(userName, email, null, hasPassword: false, cancellationToken);
+
+    // Host kullanicisi kurulumunun ortak Identity ayari ve olusturma adimlarini tek yerde isletir.
+    private async Task<IdentityUser> CreateHostUserAsync(
+        string userName,
+        string email,
+        string? password,
+        bool hasPassword,
+        CancellationToken cancellationToken = default)
     {
         using (CurrentTenant.Change(null))
         {
             await identityOptions.SetAsync();
             var user = new IdentityUser(GuidGenerator.Create(), userName, email);
-            (await userManager.CreateAsync(user, password)).CheckErrors();
+            var result = hasPassword
+                ? await userManager.CreateAsync(user, password!)
+                : await userManager.CreateAsync(user);
+            result.CheckErrors();
             return user;
         }
+    }
+
+    // Host kullanicisini e-postasiyla tenant filtresinden bagimsiz bulur.
+    private async Task<IdentityUser?> FindHostUserByEmailAsync(
+        string email,
+        CancellationToken cancellationToken = default)
+    {
+        using (CurrentTenant.Change(null))
+            return await userManager.FindByEmailAsync(email);
+    }
+
+    // Kullanicinin oturum tenant'indaki organizasyon uyeliklerini getirir.
+    private async Task<List<OrganizationModel>> GetUserOrganizationsAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        using var tenantFilter = dataFilter.Disable<IMultiTenant>();
+        var organizations = await organizationRepository.GetUserModelListAsync(userId, cancellationToken);
+        return organizations.FindAll(organization => organization.TenantId == CurrentTenant.Id);
+    }
+
+    // Tenant ve organizasyon verisinden kalici alan ya da token claim'i olmadan kapsam seviyesini turetir.
+    private static ScopeLevel ResolveScopeLevel(Guid? tenantId, OrganizationUnit? organization)
+    {
+        if (tenantId is null)
+            return ScopeLevel.SuperAdmin;
+        if (organization is null)
+            return ScopeLevel.Tenant;
+        return organization.ParentId is null ? ScopeLevel.Organization : ScopeLevel.SubOrganization;
+    }
+
+    // Rolleri tek organizasyon sorgusuyla seviyeli oturum modellerine donusturur.
+    private async Task<List<CurrentLoginRoleModel>> BuildRoleModelsAsync(
+        List<IdentityRole> roles,
+        CancellationToken cancellationToken = default)
+    {
+        var organizations = await GetRoleOrganizationsAsync(roles.Select(role => role.Id), cancellationToken);
+        return roles.ConvertAll(role => role.ToCurrentLoginRoleModel(
+            ResolveScopeLevel(role.TenantId, organizations.GetValueOrDefault(role.Id))));
+    }
+
+    // Organizasyon kapsamindaki davet rollerini mevcut organizasyon veya alt agaciyla sinirlar.
+    private async Task EnsureRolesWithinCurrentAsync(
+        List<IdentityRole> roles,
+        CancellationToken cancellationToken = default)
+    {
+        if (!currentOrganization.IsAvailable)
+            return;
+        var organizations = await GetRoleOrganizationsAsync(roles.Select(role => role.Id), cancellationToken);
+        if (organizations.Count != roles.Count)
+            throw new BusinessException(InvitationExceptionCodes.RoleNotAvailable);
+        var current = await organizationRepository.GetAsync(currentOrganization.Id!.Value, false, cancellationToken);
+        if (organizations.Values.Any(organization => !organization.IsWithinScopeOf(current)))
+            throw new BusinessException(OrganizationExceptionCodes.OutsideScope);
     }
 }

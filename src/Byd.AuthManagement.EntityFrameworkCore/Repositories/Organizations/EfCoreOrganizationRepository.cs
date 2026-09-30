@@ -51,12 +51,30 @@ public class EfCoreOrganizationRepository(IDbContextProvider<IIdentityDbContext>
         Guid userId,
         CancellationToken cancellationToken = default)
     {
-        var memberships = (await GetDbContextAsync()).Set<IdentityUserOrganizationUnit>();
+        var dbContext = await GetDbContextAsync();
+        var memberships = dbContext.Set<IdentityUserOrganizationUnit>();
+        var userRoles = dbContext.Set<IdentityUserRole>();
+        var organizations = await GetQueryableAsync();
         var query = from membership in memberships
-                    join organization in await GetModelQueryableAsync(cancellationToken)
+                    join organization in organizations
                         on membership.OrganizationUnitId equals organization.Id
                     where membership.UserId == userId
-                    select organization;
+                    join parent in organizations
+                        on organization.ParentId equals (Guid?)parent.Id into parents
+                    from parent in parents.DefaultIfEmpty()
+                    select new OrganizationModel
+                    {
+                        Id = organization.Id,
+                        TenantId = organization.TenantId,
+                        ParentId = organization.ParentId,
+                        ParentName = parent == null ? null : parent.DisplayName,
+                        Code = organization.Code,
+                        DisplayName = organization.DisplayName,
+                        HasRole = organization.Roles.Any(binding => userRoles.Any(userRole =>
+                            userRole.UserId == userId && userRole.RoleId == binding.RoleId)),
+                        CreationTime = organization.CreationTime,
+                        LastModificationTime = organization.LastModificationTime
+                    };
         return await AsyncExecuter.ToListAsync(query, cancellationToken);
     }
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Byd.CoreExtensions.Scopes;
 using Volo.Abp.Identity;
 
 namespace Byd.AuthManagement.Models.Logins;
@@ -15,6 +16,7 @@ public sealed class LoginSelectionModel
     public string? TenantName { get; set; }
     public Guid? OrganizationId { get; set; }
     public string? OrganizationName { get; set; }
+    public ScopeLevel ScopeLevel { get; set; }
     // Secim eksik; token kapsamsiz ve rolsuz uretilir, kapsam switch ile secilir.
     public bool IsSelectionRequired { get; set; }
     public List<IdentityRole> Roles { get; set; } = [];

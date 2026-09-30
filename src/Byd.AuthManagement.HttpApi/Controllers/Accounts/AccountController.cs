@@ -95,9 +95,10 @@ public class AccountController : AuthManagementController
     /// </summary>
     /// <param name="cancellationToken">Istek iptal belirteci.</param>
     /// <remarks>
-    /// Response value { TenantId, TenantName, OrganizationId, OrganizationName, UserId, UserName, Name, Surname,
-    /// Email, Roles, Organizations } tasir. Kapsam ve roller token'dan okunur; yetki kontrolu de ayni degerlerle
-    /// yapildigi icin bu cevap yetkinin gordugu kapsamdir. Roles elemanlari { Id, Name } tasir. Organizations
+    /// Response value { TenantId, TenantName, OrganizationId, OrganizationName, ScopeLevel, UserId, UserName, Name,
+    /// Surname, Email, Roles, Organizations } tasir. ScopeLevel JSON'da SuperAdmin, Tenant, Organization veya
+    /// SubOrganization sayisal enum degeri olarak gorunur. Roles elemanlari { Id, Name, ScopeLevel } tasir. Kapsam
+    /// ve roller token'dan okunur; yeni bir scope_level claim'i uretilmez. Organizations
     /// kullanicinin oturumdaki tenant'ta uyesi oldugu organizasyonlardir, elemanlari { Id, DisplayName } tasir;
     /// uyelik yoksa bos liste doner. Host kapsaminda TenantId ve TenantName bos gelir. Rolleri token alindiktan
     /// sonra degisen kullanicinin yeni rolleri refresh ya da yeniden login ile gelir.
@@ -133,8 +134,8 @@ public class AccountController : AuthManagementController
     /// <remarks>
     /// Request { TenantId, OrganizationId, UserName, Email, Password }. Kullanici host'ta acilir ve hemen login olabilir.
     /// OrganizationId bossa tenant'in organizasyona bagli olmayan varsayilan (IsDefault) rolleri verilir. Doluysa
-    /// kullanici o organizasyona uye olur ve organizasyonun rollerini uyelikle alir; organizasyonun bagli rolu olmali
-    /// ve hepsi varsayilan olmali, degilse organizasyon kayda kapalidir (030011).
+    /// organizasyona bagli varsayilan roller dogrudan verilir ve organizasyon secilebilir olsun diye uyelik acilir.
+    /// Organizasyonda bagli varsayilan rol yoksa organizasyon kayda kapalidir (030011).
     /// Response value { TenantId, TenantName, OrganizationId, OrganizationName, UserId, UserName, Email } tasir.
     /// Tenant yoksa, pasifse, tenant'ta varsayilan rol yoksa ya da organizasyon tenant'ta yoksa kayit yapilmaz.
     /// Kullanici adi ve e-posta sistem genelinde tekildir; sifre cercevenin sifre kurallarina uymalidir.
@@ -172,9 +173,10 @@ public class AccountController : AuthManagementController
     /// <param name="cancellationToken">Istek iptal belirteci.</param>
     /// <remarks>
     /// Request { RoleIds, UserName, Email, AppName, ReturnUrl, ReturnUrlHash }. Tenant her rolun kendi tenant'idir;
-    /// organizasyona bagli bir rolde kullanici o organizasyona uye yapilir ve rolu uyelikle alir, bagli olmayan rol
-    /// tenant'ta dogrudan verilir. Tenant'taki davet eden yalniz kendi tenant'inin rollerini, host'taki davet eden her
-    /// tenant'in rollerini verebilir; bir rol birden fazla organizasyona bagliysa davet yapilmaz.
+    /// butun roller kendi tenant'inda dogrudan verilir; organizasyona bagli rolde ayrica secilebilirlik uyeligi acilir.
+    /// Tenant'taki davet eden yalniz kendi tenant'inin rollerini, super admin her tenant'in rollerini verebilir.
+    /// Organizasyon yoneticisi yalniz kendi organizasyonu veya alt agacina bagli rolleri verebilir; tenant ya da baska
+    /// organizasyon rolleri 050001 ile reddedilir. Bir rol birden fazla organizasyona bagliysa davet yapilmaz.
     /// E-posta kayitliysa mevcut kullanici kullanilir, rolleri eklenir ve mail gitmez. Degilse kullanici host'ta
     /// sifresiz acilir ve AppName'in sifre sifirlama sayfasina giden bir sifre belirleme baglantisi e-postasina
     /// gonderilir; kullanici sifresini reset-password ucuyla belirleyip login olur.

@@ -1,4 +1,5 @@
 using System;
+using Volo.Abp.Identity;
 
 namespace Byd.AuthManagement.Models.Invitations;
 
@@ -10,9 +11,10 @@ namespace Byd.AuthManagement.Models.Invitations;
 // baglantisi gider, mevcut kullaniciya gitmez.
 public sealed class InvitedUserModel
 {
-    public Guid UserId { get; set; }
-    public string UserName { get; set; } = default!;
-    public string Email { get; set; } = default!;
+    public IdentityUser User { get; set; } = default!;
+    public Guid UserId => User.Id;
+    public string UserName => User.UserName;
+    public string Email => User.Email;
     // Kullanici bu davetle acildi; sifresini davet baglantisiyla belirler.
     public bool IsNewUser { get; set; }
     // Yeni kullanicinin sifre belirleme token'i; mevcut kullanicida bos, cevaba cikmaz.

@@ -39,7 +39,7 @@ public interface IOrganizationAppService : IApplicationService
         CancellationToken cancellationToken = default);
 
     // Dogrulanmis girdiden yeni organizasyon olusturur.
-    Task<OrganizationDto> CreateAsync(
+    Task<CreatedOrganizationDto> CreateAsync(
         CreateOrganizationDto input,
         CancellationToken cancellationToken = default);
 

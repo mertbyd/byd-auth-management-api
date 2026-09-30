@@ -7,10 +7,10 @@ using Byd.AuthManagement.Dtos.Invitations;
 using Byd.AuthManagement.Dtos.Logins;
 using Byd.AuthManagement.Dtos.Passwords;
 using Byd.AuthManagement.Dtos.Registrations;
-using Byd.AuthManagement.Invitations;
 using Byd.AuthManagement.Logins;
 using Byd.AuthManagement.Managers.Accounts;
 using Byd.AuthManagement.Mappers.Accounts;
+using Volo.Abp.Account.Emailing;
 using Volo.Abp.Users;
 using IdentityUser = Volo.Abp.Identity.IdentityUser;
 
@@ -48,8 +48,8 @@ public class AccountAppService : AuthManagementAppService, IAccountAppService
         LazyGetRequiredService<IValidator<TenantRegisterDto>>();
     private IValidator<InviteUserDto> InviteUserValidator =>
         LazyGetRequiredService<IValidator<InviteUserDto>>();
-    private InvitationEmailer InvitationEmailer =>
-        LazyGetRequiredService<InvitationEmailer>();
+    private IAccountEmailer AccountEmailer =>
+        LazyGetRequiredService<IAccountEmailer>();
     private Volo.Abp.Account.IAccountAppService AbpAccountAppService =>
         LazyGetRequiredService<Volo.Abp.Account.IAccountAppService>();
     private Volo.Abp.Account.IProfileAppService AbpProfileAppService =>
@@ -154,8 +154,8 @@ public class AccountAppService : AuthManagementAppService, IAccountAppService
         return Mapper.Map(user);
     }
 
-    // Girdiyi dogrular, kullaniciyi rolleriyle davet eder; yeni kullaniciya davet sablonuyla sifre belirleme
-    // baglantisini gonderir.
+    // Girdiyi dogrular, kullaniciyi rolleriyle davet eder; yeni kullaniciya ABP'nin merkezi sifre belirleme
+    // e-postasini gonderir.
     public virtual async Task<InvitedUserDto> InviteUserAsync(
         InviteUserDto input,
         CancellationToken cancellationToken = default)
@@ -164,12 +164,12 @@ public class AccountAppService : AuthManagementAppService, IAccountAppService
         var invitation = await Manager.InviteUserAsync(Mapper.Map(input), cancellationToken);
         if (invitation.IsNewUser)
         {
-            await InvitationEmailer.SendInvitationLinkAsync(
-                invitation,
+            await AccountEmailer.SendPasswordResetLinkAsync(
+                invitation.User,
+                invitation.PasswordResetToken!,
                 input.AppName,
                 input.ReturnUrl,
-                input.ReturnUrlHash,
-                cancellationToken);
+                input.ReturnUrlHash);
         }
 
         return Mapper.Map(invitation);
