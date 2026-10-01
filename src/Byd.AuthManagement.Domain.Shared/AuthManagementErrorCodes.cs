@@ -12,4 +12,16 @@ public static class AuthManagementErrorCodes
 
     // Organizasyon ailesinin numara grubu.
     public const string OrganizationGroup = RootNamespace + ":01";
+
+    // Login ailesinin numara grubu.
+    public const string LoginGroup = RootNamespace + ":02";
+
+    // Kayit ailesinin numara grubu.
+    public const string RegistrationGroup = RootNamespace + ":03";
+
+    // Sifre ailesinin numara grubu.
+    public const string PasswordGroup = RootNamespace + ":04";
+
+    // Kullanici daveti ailesinin numara grubu.
+    public const string InvitationGroup = RootNamespace + ":05";
 }

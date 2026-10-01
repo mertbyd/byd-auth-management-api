@@ -20,6 +20,7 @@ public partial class AuthManagementPermissionDefinitionProvider : PermissionDefi
             L(AuthManagementLocalizationKeys.Permissions.Group));
 
         AddOrganizationsPermissions(group);
+        AddUsersPermissions(group);
     }
 
     // Localization anahtarini modul kaynagina baglar.

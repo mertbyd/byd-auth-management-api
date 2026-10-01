@@ -139,15 +139,18 @@ public class OrganizationController : AuthManagementController
     /// <summary>
     /// Yeni bir organizasyon olusturur.
     /// </summary>
-    /// <param name="input">Organizasyon adi ve baglanacagi ust organizasyon.</param>
+    /// <param name="input">Organizasyon, baglanacagi ust kayit ve yonetici hesap bilgileri.</param>
     /// <param name="cancellationToken">Istek iptal belirteci.</param>
     /// <remarks>
-    /// Request { ParentId, DisplayName }. ParentId bos birakilirsa kayit kok organizasyon olur. Kimlik, agac kodu
-    /// ve kapsam sunucudan damgalanir; istekten alinmaz.
+    /// Request { ParentId, DisplayName, AdminUserName, AdminEmail, AdminPassword }. Organizasyonla birlikte kimliginden
+    /// tureyen statik admin rolu acilir, bes yonetim izni verilir ve yonetici bu role dogrudan baglanip uye yapilir.
+    /// E-posta mevcutsa hesap ve sifresi korunur. Response organizasyon alanlarina ek olarak AdminRoleId,
+    /// AdminRoleName, AdminUserId ve IsAdminUserNew tasir. Organizasyon kapsamindaki yonetici yalniz kendi alt
+    /// agacinda kayit acabilir ve ParentId vermek zorundadir.
     /// </remarks>
     [HttpPost]
     [Authorize(AuthManagementPermissions.Organizations.Manage)]
-    public virtual async Task<Result<OrganizationDto>> CreateAsync(
+    public virtual async Task<Result<CreatedOrganizationDto>> CreateAsync(
         [FromBody] CreateOrganizationDto input,
         CancellationToken cancellationToken = default)
         => await AppService.CreateAsync(input, cancellationToken);
@@ -176,7 +179,8 @@ public class OrganizationController : AuthManagementController
     /// <param name="id">Silinecek organizasyon kaydinin kimligi.</param>
     /// <param name="cancellationToken">Istek iptal belirteci.</param>
     /// <remarks>
-    /// Kayit ve tum alt kayitlari silinir; kullanici uyelikleri ile rol baglari da temizlenir. Islem geri alinamaz.
+    /// Kayit ve tum alt kayitlari silinir; bagli roller, izin kayitlari ve kullanici-rol baglari temizlenir.
+    /// Kullanici hesaplari silinmez. Organizasyon yoneticisi kendi organizasyonunu silemez. Islem geri alinamaz.
     /// Basarili istekte iceriksiz cevap dondurulur.
     /// </remarks>
     [HttpDelete(OrganizationRoutes.ById)]
@@ -184,6 +188,50 @@ public class OrganizationController : AuthManagementController
     public virtual async Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         await AppService.DeleteAsync(id, cancellationToken);
+        return Result.NoContent();
+    }
+
+    /// <summary>
+    /// Kullaniciyi organizasyona uye yapar.
+    /// </summary>
+    /// <param name="id">Uye eklenecek organizasyonun kimligi.</param>
+    /// <param name="userId">Uye yapilacak kullanicinin kimligi.</param>
+    /// <param name="cancellationToken">Istek iptal belirteci.</param>
+    /// <remarks>
+    /// Istek govdesi yoktur. Organizasyon istegin tenant'inda olmalidir. Kullanici zaten uyeyse degisiklik yapilmaz.
+    /// Organizasyonun rolleri kullanicinin bir sonraki login'inde ya da refresh'inde token'a gelir; mevcut token
+    /// degismez. Basarili istekte iceriksiz cevap dondurulur.
+    /// </remarks>
+    [HttpPost(OrganizationRoutes.Member)]
+    [Authorize(AuthManagementPermissions.Organizations.Manage)]
+    public virtual async Task<Result> AddMemberAsync(
+        Guid id,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        await AppService.AddMemberAsync(id, userId, cancellationToken);
+        return Result.NoContent();
+    }
+
+    /// <summary>
+    /// Kullaniciyi organizasyondan cikarir.
+    /// </summary>
+    /// <param name="id">Uyeligi kaldirilacak organizasyonun kimligi.</param>
+    /// <param name="userId">Organizasyondan cikarilacak kullanicinin kimligi.</param>
+    /// <param name="cancellationToken">Istek iptal belirteci.</param>
+    /// <remarks>
+    /// Istek govdesi yoktur. Organizasyon istegin tenant'inda olmalidir. Kullanici uye degilse degisiklik yapilmaz.
+    /// Organizasyonun rolleri kullanicinin bir sonraki login'inde ya da refresh'inde token'dan duser; mevcut token
+    /// degismez. Basarili istekte iceriksiz cevap dondurulur.
+    /// </remarks>
+    [HttpDelete(OrganizationRoutes.Member)]
+    [Authorize(AuthManagementPermissions.Organizations.Manage)]
+    public virtual async Task<Result> RemoveMemberAsync(
+        Guid id,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        await AppService.RemoveMemberAsync(id, userId, cancellationToken);
         return Result.NoContent();
     }
 }

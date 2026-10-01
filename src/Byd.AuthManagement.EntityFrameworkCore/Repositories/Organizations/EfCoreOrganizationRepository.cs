@@ -51,16 +51,45 @@ public class EfCoreOrganizationRepository(IDbContextProvider<IIdentityDbContext>
         Guid userId,
         CancellationToken cancellationToken = default)
     {
-        var memberships = (await GetDbContextAsync()).Set<IdentityUserOrganizationUnit>();
+        var dbContext = await GetDbContextAsync();
+        var memberships = dbContext.Set<IdentityUserOrganizationUnit>();
+        var userRoles = dbContext.Set<IdentityUserRole>();
+        var organizations = await GetQueryableAsync();
         var query = from membership in memberships
-                    join organization in await GetModelQueryableAsync(cancellationToken)
+                    join organization in organizations
                         on membership.OrganizationUnitId equals organization.Id
                     where membership.UserId == userId
-                    select organization;
+                    join parent in organizations
+                        on organization.ParentId equals (Guid?)parent.Id into parents
+                    from parent in parents.DefaultIfEmpty()
+                    select new OrganizationModel
+                    {
+                        Id = organization.Id,
+                        TenantId = organization.TenantId,
+                        ParentId = organization.ParentId,
+                        ParentName = parent == null ? null : parent.DisplayName,
+                        Code = organization.Code,
+                        DisplayName = organization.DisplayName,
+                        HasRole = organization.Roles.Any(binding => userRoles.Any(userRole =>
+                            userRole.UserId == userId && userRole.RoleId == binding.RoleId)),
+                        CreationTime = organization.CreationTime,
+                        LastModificationTime = organization.LastModificationTime
+                    };
         return await AsyncExecuter.ToListAsync(query, cancellationToken);
     }
 
-    // Organizasyonu ust kaydinin adiyla modele yansitir.
+    // Rollerden birine bagli organizasyonlari rol baglariyla birlikte getirir.
+    public virtual async Task<List<OrganizationUnit>> GetListByRoleIdsAsync(
+        List<Guid> roleIds,
+        CancellationToken cancellationToken = default)
+    {
+        var query = (await GetQueryableAsync())
+            .IncludeDetails()
+            .Where(organization => organization.Roles.Any(binding => roleIds.Contains(binding.RoleId)));
+        return await AsyncExecuter.ToListAsync(query, cancellationToken);
+    }
+
+    // Organizasyonu ust kaydinin adiyla ve rol verip vermedigiyle modele yansitir.
     private async Task<IQueryable<OrganizationModel>> GetModelQueryableAsync(
         CancellationToken cancellationToken = default)
     {
@@ -76,6 +105,7 @@ public class EfCoreOrganizationRepository(IDbContextProvider<IIdentityDbContext>
                    ParentName = parent == null ? null : parent.DisplayName,
                    Code = organization.Code,
                    DisplayName = organization.DisplayName,
+                   HasRole = organization.Roles.Any(),
                    CreationTime = organization.CreationTime,
                    LastModificationTime = organization.LastModificationTime
                };

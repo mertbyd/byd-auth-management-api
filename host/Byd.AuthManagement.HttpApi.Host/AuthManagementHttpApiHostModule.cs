@@ -2,41 +2,57 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Duende.IdentityModel;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OpenIddict.Validation.AspNetCore;
 using System.Reflection;
 using Byd.CoreExtensions;
 using Byd.CoreExtensions.Extensions;
 using Byd.CoreExtensions.Options;
+using Byd.AuthManagement.Consts;
 using Byd.AuthManagement.EntityFrameworkCore;
 using Byd.AuthManagement.MultiTenancy;
+using Byd.AuthManagement.Options;
+using Byd.EmailManagement;
+using Byd.EmailManagement.EntityFrameworkCore;
+using Byd.EmailManagement.Options;
+using Byd.LogManagement.EntityFrameworkCore;
 using StackExchange.Redis;
 using Microsoft.OpenApi;
 using Volo.Abp;
-using Volo.Abp.AspNetCore.Authentication.JwtBearer;
+using Volo.Abp.Account;
+using Volo.Abp.AspNetCore.Mvc.AntiForgery;
 using Volo.Abp.AspNetCore.Mvc.UI.MultiTenancy;
 using Volo.Abp.AspNetCore.Mvc.UI.Theme.Shared;
 using Volo.Abp.AspNetCore.Serilog;
-using Volo.Abp.AuditLogging.EntityFrameworkCore;
 using Volo.Abp.Autofac;
 using Volo.Abp.Caching;
 using Volo.Abp.Caching.StackExchangeRedis;
+using Volo.Abp.Data;
 using Volo.Abp.EntityFrameworkCore;
 using Volo.Abp.EntityFrameworkCore.PostgreSql;
+using Volo.Abp.Identity;
 using Volo.Abp.Localization;
 using Volo.Abp.Modularity;
+using Volo.Abp.OpenIddict;
 using Volo.Abp.MultiTenancy;
+using Volo.Abp.PermissionManagement;
+using Volo.Abp.PermissionManagement.Identity;
 using Volo.Abp.PermissionManagement.EntityFrameworkCore;
+using Volo.Abp.PermissionManagement.HttpApi;
 using Volo.Abp.Security.Claims;
 using Volo.Abp.SettingManagement.EntityFrameworkCore;
+using Volo.Abp.TenantManagement;
 using Volo.Abp.Swashbuckle;
 using Volo.Abp.TenantManagement.EntityFrameworkCore;
+using Volo.Abp.UI.Navigation.Urls;
 using Volo.Abp.VirtualFileSystem;
 
 namespace Byd.AuthManagement;
@@ -45,21 +61,62 @@ namespace Byd.AuthManagement;
     typeof(AuthManagementApplicationModule),
     typeof(AuthManagementEntityFrameworkCoreModule),
     typeof(AuthManagementHttpApiModule),
+    typeof(EmailManagementApplicationModule),
+    typeof(EmailManagementEntityFrameworkCoreModule),
+    typeof(EmailManagementHttpApiModule),
+    typeof(LogManagementEntityFrameworkCoreModule),
+    typeof(AbpIdentityApplicationModule),
+    typeof(AbpIdentityHttpApiModule),
+    typeof(AbpPermissionManagementApplicationModule),
+    typeof(AbpPermissionManagementHttpApiModule),
+    typeof(AbpPermissionManagementDomainIdentityModule),
+    typeof(AbpTenantManagementApplicationModule),
+    typeof(AbpTenantManagementHttpApiModule),
     typeof(AbpAspNetCoreMvcUiMultiTenancyModule),
-    typeof(AbpAspNetCoreAuthenticationJwtBearerModule),
     typeof(AbpAutofacModule),
     typeof(AbpCachingStackExchangeRedisModule),
     typeof(AbpEntityFrameworkCorePostgreSqlModule),
-    typeof(AbpAuditLoggingEntityFrameworkCoreModule),
     typeof(AbpAspNetCoreSerilogModule),
     typeof(AbpSwashbuckleModule)
     )]
 public class AuthManagementHttpApiHostModule : AbpModule
 {
     // ABP ortak ve ayar tablolarini core'un beyan ettigi semaya alir; model kurulmadan once calisir.
+    // Token'lar bu host'ta uretildigi icin dogrulama da yerel sunucuya baglanir; disaridaki bir adrese gidilmez.
     public override void PreConfigureServices(ServiceConfigurationContext context)
     {
         ServiceConfigurationContextExtension.ResolveSchemaAndPrefix();
+
+        var hostingEnvironment = context.Services.GetHostingEnvironment();
+        var configuration = context.Services.GetConfiguration();
+
+        PreConfigure<OpenIddictBuilder>(builder =>
+        {
+            builder.AddValidation(options =>
+            {
+                options.AddAudiences(OpenIddictConsts.ApiScope);
+                options.UseLocalServer();
+                options.UseAspNetCore();
+            });
+        });
+
+        // Gelistirme sertifikasi yalniz gelistirmede kalir; diger ortamlar imza ve sifreleme anahtarini dagitimdaki
+        // sertifikadan alir ve issuer'i config'teki adrese sabitler.
+        if (!hostingEnvironment.IsDevelopment())
+        {
+            PreConfigure<AbpOpenIddictAspNetCoreOptions>(options =>
+            {
+                options.AddDevelopmentEncryptionAndSigningCertificate = false;
+            });
+
+            PreConfigure<OpenIddictServerBuilder>(serverBuilder =>
+            {
+                serverBuilder.AddProductionEncryptionAndSigningCertificate(
+                    "openiddict.pfx",
+                    configuration["AuthServer:CertificatePassPhrase"]!);
+                serverBuilder.SetIssuer(new Uri(configuration["AuthServer:Authority"]!));
+            });
+        }
     }
 
     // Core modul adi ve ortam adini beyan eder; core saglayicilari bu beyan olmadan acilista durur.
@@ -73,6 +130,29 @@ public class AuthManagementHttpApiHostModule : AbpModule
             options.ModuleName = Assembly.GetEntryAssembly()?.GetName().Name?
                 .Replace(".HttpApi.Host", string.Empty);
             options.EnvironmentName = hostingEnvironment.EnvironmentName;
+        });
+
+        // Login servisi token'i bu adresteki token ucundan ister; adres host'un kendi ayarindan gelir.
+        Configure<AuthManagementModuleOptions>(options =>
+        {
+            options.Authority = configuration["AuthServer:Authority"]!;
+        });
+
+        // Sifre sifirlama baglantisi istemcinin sifre sayfasina gider; istemcinin adresi host'un ayarindan gelir.
+        Configure<AppUrlOptions>(options =>
+        {
+            options.Applications[PasswordConsts.ClientAppName].RootUrl = configuration["App:ClientUrl"];
+            options.Applications[PasswordConsts.ClientAppName].Urls[AccountUrlNames.PasswordReset] =
+                PasswordConsts.ResetPasswordPagePath;
+        });
+
+        // E-postalar email modulunun gondericisinden cikar; gonderici ve SMTP ayarlari host'un kendi ayarindan gelir.
+        Configure<EmailManagementOptions>(configuration.GetSection("EmailManagement"));
+
+        // Host yalniz bearer tabanli API sunar; cookie tabanli CSRF dogrulamasi Swagger POST isteklerine uygulanmaz.
+        Configure<AbpAntiForgeryOptions>(options =>
+        {
+            options.AutoValidate = false;
         });
 
         Configure<AbpDbContextOptions>(options =>
@@ -107,6 +187,18 @@ public class AuthManagementHttpApiHostModule : AbpModule
                 options.SwaggerDoc("v1", new OpenApiInfo {Title = "AuthManagement API", Version = "v1"});
                 options.DocInclusionPredicate((docName, description) => true);
                 options.CustomSchemaIds(type => type.FullName);
+                // Hesap login ucunun verdigi access token Swagger'da elle girilir; OAuth kod akisinin giris sayfasi yoktur.
+                options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    BearerFormat = "JWT",
+                    In = ParameterLocation.Header
+                });
+                options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+                {
+                    { new OpenApiSecuritySchemeReference("Bearer", document), [] }
+                });
             });
 
         // Modul yalniz Ingilizce ve Turkce kaynak tasir; beyan edilen dil listesi de bu ikisiyle sinirlidir.
@@ -116,13 +208,8 @@ public class AuthManagementHttpApiHostModule : AbpModule
             options.Languages.Add(new LanguageInfo("tr", "tr", "Türkçe"));
         });
 
-        context.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddAbpJwtBearer(options =>
-            {
-                options.Authority = configuration["AuthServer:Authority"];
-                options.RequireHttpsMetadata = configuration.GetValue<bool>("AuthServer:RequireHttpsMetadata");
-                options.Audience = "AuthManagement";
-            });
+        // Bearer tasiyan istekler OpenIddict dogrulamasina yonlenir; token'i ureten sunucu ayni host'tadir.
+        context.Services.ForwardIdentityAuthenticationForBearer(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
 
         Configure<AbpDistributedCacheOptions>(options =>
         {
@@ -176,6 +263,7 @@ public class AuthManagementHttpApiHostModule : AbpModule
         app.UseRouting();
         app.UseCors();
         app.UseAuthentication();
+        app.UseAbpOpenIddictValidation();
         if (MultiTenancyConsts.IsEnabled)
         {
             app.UseMultiTenancy();
@@ -195,5 +283,11 @@ public class AuthManagementHttpApiHostModule : AbpModule
         app.UseAuditing();
         app.UseAbpSerilogEnrichers();
         app.UseConfiguredEndpoints();
+    }
+
+    // Modullerin seed katkilarini (token client'i ve scope'u vb.) uygulama acilirken idempotent olarak calistirir.
+    public override async Task OnPostApplicationInitializationAsync(ApplicationInitializationContext context)
+    {
+        await context.ServiceProvider.GetRequiredService<IDataSeeder>().SeedAsync();
     }
 }

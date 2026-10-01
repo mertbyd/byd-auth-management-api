@@ -7,7 +7,6 @@ using Byd.AuthManagement.Dtos.Organizations;
 using Byd.AuthManagement.Interfaces.Organizations;
 using Byd.AuthManagement.Managers.Organizations;
 using Byd.AuthManagement.Mappers.Organizations;
-using Volo.Abp.Identity;
 
 namespace Byd.AuthManagement.Services.Organizations;
 
@@ -23,8 +22,6 @@ public class OrganizationAppService : AuthManagementAppService, IOrganizationApp
 
     private OrganizationManager Manager =>
         LazyGetRequiredService<OrganizationManager>();
-    private OrganizationUnitManager OrganizationUnitManager =>
-        LazyGetRequiredService<OrganizationUnitManager>();
     private IOrganizationRepository Repository =>
         LazyGetRequiredService<IOrganizationRepository>();
     private IValidator<CreateOrganizationDto> CreateValidator =>
@@ -80,18 +77,18 @@ public class OrganizationAppService : AuthManagementAppService, IOrganizationApp
         CancellationToken cancellationToken = default)
     {
         using var tenant = CurrentTenant.Change(tenantId);
-        return Mapper.Map(await Manager.GetUserOrganizationsAsync(userId, cancellationToken));
+        return Mapper.Map(await Repository.GetUserModelListAsync(userId, cancellationToken));
     }
 
     // Girdiyi dogrular, organizasyonu agaca ekler ve kaydedilmis halini dondurur.
-    public virtual async Task<OrganizationDto> CreateAsync(
+    public virtual async Task<CreatedOrganizationDto> CreateAsync(
         CreateOrganizationDto input,
         CancellationToken cancellationToken = default)
     {
         await CreateValidator.ValidateAndThrowAsync(input, cancellationToken);
-        var entity = await Manager.CreateAsync(Mapper.Map(input), cancellationToken);
+        var result = await Manager.CreateAsync(Mapper.Map(input), cancellationToken);
         await CurrentUnitOfWork!.SaveChangesAsync(cancellationToken);
-        return Mapper.Map(await Repository.GetModelAsync(entity.Id, cancellationToken));
+        return Mapper.Map(result);
     }
 
     // Girdiyi dogrular, organizasyonu tasir ve adini gunceller; kaydedilmis halini dondurur.
@@ -106,7 +103,15 @@ public class OrganizationAppService : AuthManagementAppService, IOrganizationApp
         return Mapper.Map(await Repository.GetModelAsync(id, cancellationToken));
     }
 
-    // Kaydi alt agaciyla siler; uyelik ve rol baglarini cercevenin Manager'i temizler.
+    // Kaydi alt agaciyla, organizasyon rollerini ve izinlerini Manager kuraliyla siler.
     public virtual async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
-        => await OrganizationUnitManager.DeleteAsync(id);
+        => await Manager.DeleteAsync(id, cancellationToken);
+
+    // Kullaniciyi organizasyona uye yapar.
+    public virtual async Task AddMemberAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
+        => await Manager.AddMemberAsync(id, userId, cancellationToken);
+
+    // Kullaniciyi organizasyondan cikarir.
+    public virtual async Task RemoveMemberAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
+        => await Manager.RemoveMemberAsync(id, userId, cancellationToken);
 }

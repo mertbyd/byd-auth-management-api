@@ -30,4 +30,7 @@ public static class OrganizationRoutes
 
     // Kullanicinin tenant icindeki organizasyon uyeliklerini donduren endpointin rota kalibidir.
     public const string UserOrganizations = "tenants/{tenantId:guid}/users/{userId:guid}";
+
+    // Organizasyona uye ekleyen ve cikaran endpointlerin rota kalibidir.
+    public const string Member = "{id:guid}/members/{userId:guid}";
 }

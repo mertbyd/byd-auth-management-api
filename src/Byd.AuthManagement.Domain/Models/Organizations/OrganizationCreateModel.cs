@@ -7,4 +7,7 @@ namespace Byd.AuthManagement.Models.Organizations;
 // sistemdeki gorevi: Organizasyon olusturma senaryosunun transporttan bagimsiz girdi tipidir.
 public sealed class OrganizationCreateModel : OrganizationInputModel
 {
+    public string AdminUserName { get; set; } = default!;
+    public string AdminEmail { get; set; } = default!;
+    public string AdminPassword { get; set; } = default!;
 }
