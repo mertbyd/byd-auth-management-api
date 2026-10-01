@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using Byd.AuthManagement.Models.Features;
 using Byd.AuthManagement.Models.Organizations;
 using Volo.Abp.Identity;
 
@@ -16,7 +18,8 @@ public static class OrganizationModelExtensions
         string? parentName,
         IdentityRole adminRole,
         IdentityUser adminUser,
-        bool isAdminUserNew)
+        bool isAdminUserNew,
+        List<FeatureSelectionModel> features)
     {
         return new CreatedOrganizationModel
         {
@@ -31,7 +34,8 @@ public static class OrganizationModelExtensions
             AdminRoleId = adminRole.Id,
             AdminRoleName = adminRole.Name,
             AdminUserId = adminUser.Id,
-            IsAdminUserNew = isAdminUserNew
+            IsAdminUserNew = isAdminUserNew,
+            Features = features
         };
     }
 }

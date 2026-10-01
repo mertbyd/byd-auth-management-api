@@ -269,6 +269,8 @@ public class AuthManagementHttpApiHostModule : AbpModule
             app.UseMultiTenancy();
         }
         app.UseAbpRequestLocalization();
+        // Organizasyon feature'i authorization sirasinda degerlendirilir; claim kapsami once kurulmalidir.
+        app.UseCoreExtensions();//core module
         app.UseAuthorization();
         app.UseSwagger();
         app.UseAbpSwaggerUI(options =>
@@ -279,7 +281,6 @@ public class AuthManagementHttpApiHostModule : AbpModule
             options.OAuthClientId(configuration["AuthServer:SwaggerClientId"]);
             options.OAuthScopes("AuthManagement");
         });
-        app.UseCoreExtensions();//core module
         app.UseAuditing();
         app.UseAbpSerilogEnrichers();
         app.UseConfiguredEndpoints();

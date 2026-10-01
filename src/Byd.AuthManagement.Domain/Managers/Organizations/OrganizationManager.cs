@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ using Byd.AuthManagement.ExceptionCodes;
 using Byd.AuthManagement.Extensions.Organizations;
 using Byd.AuthManagement.Interfaces.Organizations;
 using Byd.AuthManagement.Managers.Accounts;
+using Byd.AuthManagement.Managers.Features;
 using Byd.AuthManagement.Models.Organizations;
 using Byd.AuthManagement.Permissions;
 using Byd.CoreExtensions.Interfaces;
@@ -15,6 +17,7 @@ using Volo.Abp;
 using Volo.Abp.Authorization.Permissions;
 using Volo.Abp.Data;
 using Volo.Abp.Domain.Services;
+using Volo.Abp.FeatureManagement;
 using Volo.Abp.Identity;
 using Volo.Abp.MultiTenancy;
 using Volo.Abp.PermissionManagement;
@@ -35,16 +38,25 @@ public class OrganizationManager(
     IIdentityUserRepository userRepository,
     IPermissionDataSeeder permissionDataSeeder,
     IPermissionManager permissionManager,
+    IFeatureManager featureManager,
+    FeatureSelectionManager featureSelectionManager,
     AccountManager accountManager,
     ICurrentOrganization currentOrganization,
     IDataFilter dataFilter) : DomainService
 {
+    private static readonly string[] AdminFeaturePermissions =
+    [
+        AuthManagementPermissions.Features.Default,
+        AuthManagementPermissions.Features.Manage
+    ];
+
     // Organizasyonu, temel admin rolunu ve yonetici hesabini ayni kullanim senaryosunda kurar.
     public virtual async Task<CreatedOrganizationModel> CreateAsync(
         OrganizationCreateModel model,
         CancellationToken cancellationToken = default)
     {
         await EnsureCanCreateAsync(model.ParentId, cancellationToken);
+        await featureSelectionManager.ValidateAsync(model.Features, cancellationToken);
         var parent = model.ParentId is null
             ? null
             : await repository.GetAsync(model.ParentId.Value, false, cancellationToken);
@@ -57,7 +69,26 @@ public class OrganizationManager(
             model.AdminPassword,
             cancellationToken);
         await AssignAdminAsync(entity, role, user, cancellationToken);
-        return entity.ToCreatedOrganizationModel(parent?.DisplayName, role, user, isNewUser);
+        await featureSelectionManager.ReplaceAsync(
+            FeatureConsts.OrganizationProviderName, entity.Id.ToString(), model.Features, cancellationToken);
+        return entity.ToCreatedOrganizationModel(parent?.DisplayName, role, user, isNewUser, model.Features);
+    }
+
+    // Feature yonetimini istegin tenant'i ve mevcut organizasyonun alt agaciyla sinirlar.
+    public virtual async Task EnsureCanManageFeaturesAsync(
+        string providerKey,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Guid.TryParse(providerKey, out var organizationId))
+            throw new BusinessException(FeatureExceptionCodes.OutsideScope);
+        var target = await repository.FindAsync(organizationId, false, cancellationToken);
+        if (target is null || target.TenantId != CurrentTenant.Id)
+            throw new BusinessException(FeatureExceptionCodes.OutsideScope);
+        if (!currentOrganization.IsAvailable)
+            return;
+        var current = await GetCurrentOrganizationAsync(cancellationToken);
+        if (!target.IsWithinScopeOf(current))
+            throw new BusinessException(FeatureExceptionCodes.OutsideScope);
     }
 
     // Ust kayit degistiyse kaydi alt agaciyla tasir, sonra adini gunceller.
@@ -67,12 +98,15 @@ public class OrganizationManager(
         CancellationToken cancellationToken = default)
     {
         await EnsureCanUpdateAsync(id, model.ParentId, cancellationToken);
+        await featureSelectionManager.ValidateAsync(model.Features, cancellationToken);
         var entity = await repository.GetAsync(id, includeDetails: false, cancellationToken);
         if (entity.ParentId != model.ParentId)
             await organizationUnitManager.MoveAsync(id, model.ParentId);
 
         entity.DisplayName = model.DisplayName;
         await organizationUnitManager.UpdateAsync(entity);
+        await featureSelectionManager.ReplaceAsync(
+            FeatureConsts.OrganizationProviderName, id.ToString(), model.Features, cancellationToken);
     }
 
     // Kullaniciyi organizasyona uye yapar. Organizasyon tenant filtresi acikken okunur ki baska tenant'in
@@ -104,6 +138,8 @@ public class OrganizationManager(
         var roles = await roleRepository.GetListAsync(roleIds, cancellationToken);
         foreach (var role in roles)
             await DeleteOrganizationRoleAsync(role, cancellationToken);
+        foreach (var organization in organizations)
+            await featureManager.DeleteAsync(FeatureConsts.OrganizationProviderName, organization.Id.ToString());
         await organizationUnitManager.DeleteAsync(id);
     }
 
@@ -150,7 +186,8 @@ public class OrganizationManager(
             AuthManagementPermissions.Users.Manage,
             AuthManagementPermissions.Organizations.Default,
             AuthManagementPermissions.Organizations.View,
-            AuthManagementPermissions.Organizations.Manage
+            AuthManagementPermissions.Organizations.Manage,
+            ..AdminFeaturePermissions
         ];
 
     // Izinleri acikca temizler, statik korumayi kontrollu kaldirir ve rol silmeyle kullanici baglarini cascade eder.

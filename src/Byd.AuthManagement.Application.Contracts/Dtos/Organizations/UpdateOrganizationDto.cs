@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using Byd.AuthManagement.Dtos.Features;
+
 namespace Byd.AuthManagement.Dtos.Organizations;
 
 /// <summary>
@@ -7,4 +10,5 @@ namespace Byd.AuthManagement.Dtos.Organizations;
 // sistemdeki gorevi: Route kimligini payload disinda tutup degistirilebilir alanlari tasir.
 public sealed class UpdateOrganizationDto : OrganizationInputDto
 {
+    public List<FeatureSelectionDto>? Features { get; set; }
 }

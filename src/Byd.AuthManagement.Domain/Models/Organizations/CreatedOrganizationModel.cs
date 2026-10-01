@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using Byd.AuthManagement.Models.Features;
 
 namespace Byd.AuthManagement.Models.Organizations;
 
@@ -13,4 +15,6 @@ public sealed class CreatedOrganizationModel : OrganizationModel
     public string AdminRoleName { get; set; } = default!;
     public Guid AdminUserId { get; set; }
     public bool IsAdminUserNew { get; set; }
+
+    public List<FeatureSelectionModel> Features { get; set; } = [];
 }

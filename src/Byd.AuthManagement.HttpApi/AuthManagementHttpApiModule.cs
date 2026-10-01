@@ -10,6 +10,7 @@ using Volo.Abp.Modularity;
 using OpenIddict.Validation;
 using Volo.Abp.OpenIddict;
 using Microsoft.Extensions.DependencyInjection;
+using Volo.Abp.FeatureManagement;
 
 namespace Byd.AuthManagement;
 
@@ -17,6 +18,7 @@ namespace Byd.AuthManagement;
 [DependsOn(
     typeof(CoreExtensionsHttpApiModule),
     typeof(AuthManagementApplicationContractsModule),
+    typeof(AbpFeatureManagementHttpApiModule),
     typeof(AbpAspNetCoreMvcModule),
     typeof(AbpIdentityAspNetCoreModule),
     typeof(AbpOpenIddictAspNetCoreModule))]

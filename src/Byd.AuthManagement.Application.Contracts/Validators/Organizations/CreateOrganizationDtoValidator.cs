@@ -1,6 +1,7 @@
 using FluentValidation;
 using Byd.AuthManagement.Dtos.Organizations;
 using Byd.AuthManagement.ExceptionCodes;
+using Byd.AuthManagement.Validators.Features;
 
 namespace Byd.AuthManagement.Validators.Organizations;
 
@@ -21,5 +22,9 @@ public sealed class CreateOrganizationDtoValidator
             .EmailAddress().WithErrorCode(OrganizationExceptionCodes.AdminEmailInvalid);
         RuleFor(input => input.AdminPassword)
             .NotEmpty().WithErrorCode(OrganizationExceptionCodes.AdminPasswordRequired);
+        RuleFor(input => input.Features)
+            .Cascade(CascadeMode.Stop)
+            .NotEmpty().WithErrorCode(FeatureExceptionCodes.SelectionRequired)
+            .SetValidator(new FeatureSelectionListValidator());
     }
 }

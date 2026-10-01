@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Byd.AuthManagement.Extensions;
 using Volo.Abp.EntityFrameworkCore;
 using Volo.Abp.EntityFrameworkCore.PostgreSql;
+using Volo.Abp.FeatureManagement.EntityFrameworkCore;
 using Volo.Abp.Identity.EntityFrameworkCore;
 using Volo.Abp.OpenIddict.EntityFrameworkCore;
 using Volo.Abp.PermissionManagement.EntityFrameworkCore;
@@ -16,6 +17,7 @@ namespace Byd.AuthManagement.EntityFrameworkCore;
     typeof(AuthManagementDomainModule),
     typeof(AbpEntityFrameworkCoreModule),
     typeof(AbpEntityFrameworkCorePostgreSqlModule),
+    typeof(AbpFeatureManagementEntityFrameworkCoreModule),
     typeof(AbpIdentityEntityFrameworkCoreModule),
     typeof(AbpOpenIddictEntityFrameworkCoreModule),
     typeof(AbpPermissionManagementEntityFrameworkCoreModule),

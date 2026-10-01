@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using Byd.AuthManagement.Dtos.Features;
 
 namespace Byd.AuthManagement.Dtos.Organizations;
 
@@ -16,4 +18,6 @@ public sealed class CreatedOrganizationDto : OrganizationDto
     public Guid AdminUserId { get; set; }
 
     public bool IsAdminUserNew { get; set; }
+
+    public List<FeatureSelectionDto> Features { get; set; } = [];
 }

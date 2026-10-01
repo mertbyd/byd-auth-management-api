@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using Byd.AuthManagement.Models.Features;
+
 namespace Byd.AuthManagement.Models.Organizations;
 
 /// <summary>
@@ -10,4 +13,6 @@ public sealed class OrganizationCreateModel : OrganizationInputModel
     public string AdminUserName { get; set; } = default!;
     public string AdminEmail { get; set; } = default!;
     public string AdminPassword { get; set; } = default!;
+
+    public List<FeatureSelectionModel> Features { get; set; } = [];
 }

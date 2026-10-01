@@ -3,6 +3,7 @@ using Volo.Abp.Modularity;
 using Volo.Abp.Localization;
 using Byd.AuthManagement.Localization;
 using Volo.Abp.Domain;
+using Volo.Abp.FeatureManagement;
 using Volo.Abp.Localization.ExceptionHandling;
 using Volo.Abp.Validation;
 using Volo.Abp.Validation.Localization;
@@ -12,6 +13,7 @@ namespace Byd.AuthManagement;
 
 [DependsOn(
     typeof(CoreExtensionsDomainSharedModule),
+    typeof(AbpFeatureManagementDomainSharedModule),
     typeof(AbpValidationModule),
     typeof(AbpDddDomainSharedModule)
 )]

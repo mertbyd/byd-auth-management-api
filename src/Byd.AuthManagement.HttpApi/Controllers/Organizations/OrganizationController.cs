@@ -139,10 +139,12 @@ public class OrganizationController : AuthManagementController
     /// <summary>
     /// Yeni bir organizasyon olusturur.
     /// </summary>
-    /// <param name="input">Organizasyon, baglanacagi ust kayit ve yonetici hesap bilgileri.</param>
+    /// <param name="input">Organizasyon, baglanacagi ust kayit, feature degerleri ve yonetici hesap bilgileri.</param>
     /// <param name="cancellationToken">Istek iptal belirteci.</param>
     /// <remarks>
-    /// Request { ParentId, DisplayName, AdminUserName, AdminEmail, AdminPassword }. Organizasyonla birlikte kimliginden
+    /// Request { ParentId, DisplayName, AdminUserName, AdminEmail, AdminPassword, Features[{ Name, Value }] }.
+    /// Organizasyonla birlikte secilen feature degerleri kendi kapsaminda yazilir; boolean, sayisal ve secimli
+    /// degerler feature taniminin kuraliyla dogrulanir. Organizasyonla birlikte kimliginden
     /// tureyen statik admin rolu acilir, bes yonetim izni verilir ve yonetici bu role dogrudan baglanip uye yapilir.
     /// E-posta mevcutsa hesap ve sifresi korunur. Response organizasyon alanlarina ek olarak AdminRoleId,
     /// AdminRoleName, AdminUserId ve IsAdminUserNew tasir. Organizasyon kapsamindaki yonetici yalniz kendi alt
@@ -150,6 +152,7 @@ public class OrganizationController : AuthManagementController
     /// </remarks>
     [HttpPost]
     [Authorize(AuthManagementPermissions.Organizations.Manage)]
+    [Authorize(AuthManagementPermissions.Features.Manage)]
     public virtual async Task<Result<CreatedOrganizationDto>> CreateAsync(
         [FromBody] CreateOrganizationDto input,
         CancellationToken cancellationToken = default)
@@ -159,11 +162,13 @@ public class OrganizationController : AuthManagementController
     /// Kimligi verilen organizasyonun adini ve agactaki yerini gunceller.
     /// </summary>
     /// <param name="id">Guncellenecek organizasyon kaydinin kimligi.</param>
-    /// <param name="input">Yeni organizasyon adi ve baglanacagi ust organizasyon.</param>
+    /// <param name="input">Yeni organizasyon adi, baglanacagi ust organizasyon ve istege bagli feature degerleri.</param>
     /// <param name="cancellationToken">Istek iptal belirteci.</param>
     /// <remarks>
-    /// Request { ParentId, DisplayName }. ParentId degisirse kayit tasinir ve alt agacin kodlari yeniden uretilir.
-    /// Response value guncel kodu tasir. Alt kayitlar bu endpointten duzenlenmez.
+    /// Request { ParentId, DisplayName, Features[{ Name, Value }]? }. ParentId degisirse kayit tasinir ve alt agacin
+    /// kodlari yeniden uretilir. Features gonderilirse organizasyonun feature degerleri bu listeyle esitlenir ve
+    /// Features.Manage yetkisi gerekir; gonderilmezse feature'lara dokunulmaz. Response value guncel kodu tasir.
+    /// Alt kayitlar bu endpointten duzenlenmez.
     /// </remarks>
     [HttpPut(OrganizationRoutes.ById)]
     [Authorize(AuthManagementPermissions.Organizations.Manage)]
@@ -179,7 +184,8 @@ public class OrganizationController : AuthManagementController
     /// <param name="id">Silinecek organizasyon kaydinin kimligi.</param>
     /// <param name="cancellationToken">Istek iptal belirteci.</param>
     /// <remarks>
-    /// Kayit ve tum alt kayitlari silinir; bagli roller, izin kayitlari ve kullanici-rol baglari temizlenir.
+    /// Kayit ve tum alt kayitlari silinir; bagli roller, izin kayitlari, kullanici-rol baglari ve organizasyonlarin
+    /// feature degerleri temizlenir.
     /// Kullanici hesaplari silinmez. Organizasyon yoneticisi kendi organizasyonunu silemez. Islem geri alinamaz.
     /// Basarili istekte iceriksiz cevap dondurulur.
     /// </remarks>

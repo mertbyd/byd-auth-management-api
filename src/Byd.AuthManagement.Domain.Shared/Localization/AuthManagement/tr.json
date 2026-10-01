@@ -7,6 +7,8 @@
     "Permission:Organizations": "Organizasyonlar",
     "Permission:Organizations.View": "Organizasyonlari goruntuleme",
     "Permission:Organizations.Manage": "Organizasyonlari yonetme",
+    "Permission:Features": "Feature'lar",
+    "Permission:Features.Manage": "Organizasyon feature'larini yonetme",
     "Permission:Users": "Kullanicilar",
     "Permission:Users.Manage": "Kullanici davet etme ve rol verme",
     "AuthManagement:010001": "Organizasyon adi zorunludur.",
@@ -51,6 +53,14 @@
     "AuthManagement:050004": "Kullanici adi zorunludur.",
     "AuthManagement:050005": "E-posta zorunludur.",
     "AuthManagement:050006": "E-posta gecerli bir adres degil.",
-    "AuthManagement:050007": "Uygulama adi zorunludur."
+    "AuthManagement:050007": "Uygulama adi zorunludur.",
+    "AuthManagement:060001": "En az bir feature zorunludur.",
+    "AuthManagement:060002": "Feature adi zorunludur.",
+    "AuthManagement:060003": "Feature degeri zorunludur.",
+    "AuthManagement:060004": "Feature adlari tekrar edemez.",
+    "AuthManagement:060005": "Feature secimi ad ve deger ciftlerinden olusan bir liste olmalidir.",
+    "AuthManagement:060006": "Secilen feature tanimli degil.",
+    "AuthManagement:060007": "Feature degeri tanimiyla uyumlu degil.",
+    "AuthManagement:060008": "Organizasyon feature yonetim kapsaminizin disinda."
   }
 }
