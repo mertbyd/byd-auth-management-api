@@ -4,7 +4,7 @@ namespace Byd.AuthManagement.Dtos.Registrations;
 /// Kendi tenant'ini acarak kayit istegini tanimlar.
 /// </summary>
 // islevi: Acilacak tenant'in adini ve yeni kullanicinin kimlik bilgilerini tasir.
-// sistemdeki gorevi: Tenant acan kayit endpointinin public girdi tipidir; organizasyon kayitta secilmez.
+// sistemdeki gorevi: Anonim kayitta organizasyon ve feature secimi kabul etmez; feature'lar ABP varsayilanlarindan gelir.
 public sealed class TenantRegisterDto
 {
     // Acilacak tenant'in adi.

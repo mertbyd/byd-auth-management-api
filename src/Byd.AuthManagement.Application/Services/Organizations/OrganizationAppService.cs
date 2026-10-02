@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Byd.AuthManagement.Dtos.Organizations;
 using Byd.AuthManagement.Interfaces.Organizations;
 using Byd.AuthManagement.Managers.Organizations;
 using Byd.AuthManagement.Mappers.Organizations;
+using Byd.AuthManagement.Permissions;
 
 namespace Byd.AuthManagement.Services.Organizations;
 
@@ -98,6 +100,8 @@ public class OrganizationAppService : AuthManagementAppService, IOrganizationApp
         CancellationToken cancellationToken = default)
     {
         await UpdateValidator.ValidateAndThrowAsync(input, cancellationToken);
+        if (input.Features is not null)
+            await AuthorizationService.CheckAsync(AuthManagementPermissions.Features.Manage);
         await Manager.UpdateAsync(id, Mapper.Map(input), cancellationToken);
         await CurrentUnitOfWork!.SaveChangesAsync(cancellationToken);
         return Mapper.Map(await Repository.GetModelAsync(id, cancellationToken));

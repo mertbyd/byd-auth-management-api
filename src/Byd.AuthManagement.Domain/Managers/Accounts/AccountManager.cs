@@ -57,13 +57,17 @@ public class AccountManager(
     ICurrentUser currentUser,
     ICurrentOrganization currentOrganization) : DomainService
 {
-    // Kullaniciyi adina ya da e-postasina gore bulur; bulunamazsa gecersiz kimlik bilgisi hatasi verir.
+    // Kullaniciyi istekteki tenant'tan bagimsiz, adina ya da e-postasina gore bulur; bulunamazsa gecersiz kimlik
+    // bilgisi hatasi verir.
     public virtual async Task<IdentityUser> GetUserAsync(
         string userNameOrEmail,
         CancellationToken cancellationToken = default)
-        => await userManager.FindByNameAsync(userNameOrEmail)
-           ?? await userManager.FindByEmailAsync(userNameOrEmail)
-           ?? throw new BusinessException(LoginExceptionCodes.InvalidCredentials);
+    {
+        using var tenantFilter = dataFilter.Disable<IMultiTenant>();
+        return await userManager.FindByNameAsync(userNameOrEmail)
+               ?? await userManager.FindByEmailAsync(userNameOrEmail)
+               ?? throw new BusinessException(LoginExceptionCodes.InvalidCredentials);
+    }
 
     // Sifre kontrolunun sonucunu hata koduna cevirir.
     public virtual void EnsureSignedIn(SignInResult result)
@@ -100,13 +104,14 @@ public class AccountManager(
         CancellationToken cancellationToken = default)
         => RequiresSelection(scope, tenantId, organizationId)
             ? new LoginSelectionModel { IsSelectionRequired = true }
-            : await ResolveSelectionAsync(userId, tenantId, organizationId, cancellationToken);
+            : await ResolveSelectionAsync(userId, tenantId, organizationId, selectSingleScope: true, cancellationToken);
 
-    // Secimi dogrular, secilmeyen kapsami tek secenekse tamamlar ve kapsamdaki rolleri toplar.
+    // Acik secimi dogrular; yalniz ilk login akisinda tek secenegi otomatik tamamlar.
     public virtual async Task<LoginSelectionModel> ResolveSelectionAsync(
         Guid userId,
         Guid? tenantId,
         Guid? organizationId,
+        bool selectSingleScope = false,
         CancellationToken cancellationToken = default)
     {
         using var tenantFilter = dataFilter.Disable<IMultiTenant>();
@@ -116,8 +121,8 @@ public class AccountManager(
             includeDetails: true,
             cancellationToken);
         var tenantIds = GetTenantIds(roles, organizations.Select(organization => organization.TenantId));
-        var selectedTenantId = ResolveTenant(tenantIds, tenantId);
-        var organization = ResolveOrganization(organizations, selectedTenantId, organizationId);
+        var selectedTenantId = ResolveTenant(tenantIds, tenantId, selectSingleScope);
+        var organization = ResolveOrganization(organizations, selectedTenantId, organizationId, selectSingleScope);
         var scopeRoles = await GetScopeRolesAsync(roles, selectedTenantId, organization, cancellationToken);
         if (scopeRoles.Count == 0)
             throw new BusinessException(LoginExceptionCodes.NoRoleInScope);
@@ -137,16 +142,14 @@ public class AccountManager(
         var userId = currentUser.GetId();
         var roleIds = currentUser.FindClaims(RoleClaimTypes.RoleId).Select(claim => Guid.Parse(claim.Value));
         var roles = await roleRepository.GetListAsync(roleIds, cancellationToken);
-        var organization = currentOrganization.Id is null
-            ? null
-            : await organizationRepository.FindAsync(currentOrganization.Id.Value, false, cancellationToken);
         return currentUser.ToCurrentLoginModel(
             userId,
             CurrentTenant.Id,
             CurrentTenant.Name,
             currentOrganization.Id,
             currentOrganization.Name,
-            ResolveScopeLevel(CurrentTenant.Id, organization),
+            Enum.TryParse<ScopeLevel>(currentUser.FindClaim(ScopeClaimTypes.Level)?.Value, out var level)
+                ? level : ScopeLevel.Unselected,
             await BuildRoleModelsAsync(roles, cancellationToken),
             await GetUserOrganizationsAsync(userId, cancellationToken));
     }
@@ -274,9 +277,9 @@ public class AccountManager(
     }
 
     // Secilen tenant kullanicinin tenant'larindan biri olmali; secilmediyse tek secenek alinir.
-    private static Guid? ResolveTenant(List<Guid?> tenantIds, Guid? tenantId)
+    private static Guid? ResolveTenant(List<Guid?> tenantIds, Guid? tenantId, bool selectSingleScope)
     {
-        if (tenantId is null && tenantIds.Count <= 1)
+        if (selectSingleScope && tenantId is null && tenantIds.Count <= 1)
             return tenantIds.SingleOrDefault();
 
         if (!tenantIds.Contains(tenantId))
@@ -289,9 +292,12 @@ public class AccountManager(
     private static OrganizationUnit? ResolveOrganization(
         List<OrganizationUnit> organizations,
         Guid? tenantId,
-        Guid? organizationId)
+        Guid? organizationId,
+        bool selectSingleScope)
     {
         var candidates = organizations.FindAll(organization => organization.TenantId == tenantId);
+        if (!selectSingleScope && organizationId is null)
+            return null;
         if (organizationId is null && candidates.Count <= 1)
             return candidates.SingleOrDefault();
 
@@ -317,7 +323,7 @@ public class AccountManager(
         ];
     }
 
-    // Tenant'i acar ve tum izinleri tasiyan sahip rolunu kurar; kullanici bu role girer.
+    // Tenant ve sahip rolunu kurar; feature override'i yazmayarak ABP varsayilanlarini korur.
     private async Task<RegistrationScopeModel> CreateTenantScopeAsync(
         string tenantName,
         CancellationToken cancellationToken = default)
@@ -604,14 +610,12 @@ public class AccountManager(
         return organizations.FindAll(organization => organization.TenantId == CurrentTenant.Id);
     }
 
-    // Tenant ve organizasyon verisinden kalici alan ya da token claim'i olmadan kapsam seviyesini turetir.
+    // Dogrulanmis secimden seviye uretir; host'a bagli organizasyon da organizasyon kapsamidir.
     private static ScopeLevel ResolveScopeLevel(Guid? tenantId, OrganizationUnit? organization)
     {
-        if (tenantId is null)
-            return ScopeLevel.SuperAdmin;
-        if (organization is null)
-            return ScopeLevel.Tenant;
-        return organization.ParentId is null ? ScopeLevel.Organization : ScopeLevel.SubOrganization;
+        if (organization is not null)
+            return organization.ParentId is null ? ScopeLevel.Organization : ScopeLevel.SubOrganization;
+        return tenantId is null ? ScopeLevel.SuperAdmin : ScopeLevel.Tenant;
     }
 
     // Rolleri tek organizasyon sorgusuyla seviyeli oturum modellerine donusturur.

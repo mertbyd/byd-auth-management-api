@@ -106,7 +106,7 @@ public class AccountAppService : AuthManagementAppService, IAccountAppService
             CurrentUser.GetId(),
             input.TenantId,
             input.OrganizationId,
-            cancellationToken);
+            cancellationToken: cancellationToken);
         var token = await TokenClient.ExchangeCurrentTokenAsync(selection, cancellationToken);
         await LogoutAsync(cancellationToken);
         return Mapper.Map(token);

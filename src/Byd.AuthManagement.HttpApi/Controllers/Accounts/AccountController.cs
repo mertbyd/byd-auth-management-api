@@ -42,7 +42,7 @@ public class AccountController : AuthManagementController
     /// true olur ve token kapsamsizdir: tenant, organizasyon ve rol tasimaz; yalniz me, switch, logout ve sifre
     /// degistirme uclarinda gecer. Istemci bu token'la switch ucuna secimini gonderip kapsamli token alir. Secim tamamsa
     /// ya da tek secenek varsa token dogrudan kapsamlidir; secilen kapsamin rollerini ve tenant_id, tenant_name,
-    /// organization_id, organization_name claim'lerini icerir.
+    /// organization_id, organization_name ve scope_level claim'lerini icerir.
     /// Hatali denemeler hesabi gecici olarak kilitler. Secilen kapsamda rolu olmayan kullaniciya token verilmez.
     /// </remarks>
     [HttpPost(AccountRoutes.Login)]
@@ -58,7 +58,7 @@ public class AccountController : AuthManagementController
     /// <param name="input">Gecilecek tenant ve organizasyon.</param>
     /// <param name="cancellationToken">Istek iptal belirteci.</param>
     /// <remarks>
-    /// Request { TenantId, OrganizationId }; OrganizationId tenant'ta tek uyelik varsa bos birakilabilir. Sifre istenmez,
+    /// Request { TenantId, OrganizationId }; ikisi de null ise host, yalniz OrganizationId null ise tenant secilir. Sifre istenmez,
     /// kullanici istegin erisim token'indan okunur; login'in kapsamsiz token'i da kapsamli token da kullanilabilir.
     /// Response value { AccessToken, TokenType, RefreshToken, ExpiresIn } tasir; erisim token'i secilen kapsamin
     /// rollerini ve tenant_id, tenant_name, organization_id, organization_name claim'lerini icerir. Istekteki token ve
@@ -97,8 +97,8 @@ public class AccountController : AuthManagementController
     /// <remarks>
     /// Response value { TenantId, TenantName, OrganizationId, OrganizationName, ScopeLevel, UserId, UserName, Name,
     /// Surname, Email, Roles, Organizations } tasir. ScopeLevel JSON'da SuperAdmin, Tenant, Organization veya
-    /// SubOrganization sayisal enum degeri olarak gorunur. Roles elemanlari { Id, Name, ScopeLevel } tasir. Kapsam
-    /// ve roller token'dan okunur; yeni bir scope_level claim'i uretilmez. Organizations
+    /// SubOrganization sayisal enum degeri olarak gorunur; secilmemis oturum Unselected (0) doner.
+    /// Roles elemanlari { Id, Name, ScopeLevel } tasir. Kapsam seviyesi scope_level claim'inden okunur. Organizations
     /// kullanicinin oturumdaki tenant'ta uyesi oldugu organizasyonlardir, elemanlari { Id, DisplayName } tasir;
     /// uyelik yoksa bos liste doner. Host kapsaminda TenantId ve TenantName bos gelir. Rolleri token alindiktan
     /// sonra degisen kullanicinin yeni rolleri refresh ya da yeniden login ile gelir.
@@ -152,7 +152,8 @@ public class AccountController : AuthManagementController
     /// Request { TenantName, UserName, Email, Password }. Tenant acilir, tenant'ta uygulamanin tenant tarafindaki tum
     /// izinlerini tasiyan admin rolu kurulur; kullanici host'ta acilir, bu role girer ve hemen login olabilir.
     /// Response value { TenantId, TenantName, UserId, UserName, Email } tasir. Admin rolu varsayilan rol degildir;
-    /// tenant'a sonradan katilanlara verilmez. Tenant'a feature atamaz, organizasyon acmaz. Tenant adi, kullanici adi
+    /// tenant'a sonradan katilanlara verilmez. Feature secimi kabul etmez ve override yazmaz; ABP feature
+    /// varsayilanlari kullanilir. Organizasyon acmaz. Tenant adi, kullanici adi
     /// ve e-posta sistem genelinde tekildir; sifre cercevenin sifre kurallarina uymalidir.
     /// </remarks>
     [HttpPost(AccountRoutes.RegisterTenant)]

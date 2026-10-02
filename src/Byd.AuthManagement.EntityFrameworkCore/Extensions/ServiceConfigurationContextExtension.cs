@@ -1,4 +1,5 @@
 using Byd.AuthManagement.Consts;
+using Volo.Abp.FeatureManagement;
 using Volo.Abp.Identity;
 using Volo.Abp.OpenIddict;
 using Volo.Abp.PermissionManagement;
@@ -29,6 +30,9 @@ public static class ServiceConfigurationContextExtension
 
         AbpPermissionManagementDbProperties.DbSchema = DatabaseConsts.ModuleSchema;
         AbpPermissionManagementDbProperties.DbTablePrefix = string.Empty;
+
+        AbpFeatureManagementDbProperties.DbSchema = DatabaseConsts.ModuleSchema;
+        AbpFeatureManagementDbProperties.DbTablePrefix = string.Empty;
 
         AbpTenantManagementDbProperties.DbSchema = DatabaseConsts.ModuleSchema;
         AbpTenantManagementDbProperties.DbTablePrefix = string.Empty;

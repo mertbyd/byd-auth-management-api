@@ -10,6 +10,8 @@ public static class AuthManagementLocalizationKeys
         public const string Organizations = "Permission:Organizations";
         public const string OrganizationsView = "Permission:Organizations.View";
         public const string OrganizationsManage = "Permission:Organizations.Manage";
+        public const string Features = "Permission:Features";
+        public const string FeaturesManage = "Permission:Features.Manage";
         public const string Users = "Permission:Users";
         public const string UsersManage = "Permission:Users.Manage";
     }

@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using Byd.AuthManagement.Dtos.Features;
+
 namespace Byd.AuthManagement.Dtos.Organizations;
 
 /// <summary>
@@ -12,4 +15,7 @@ public sealed class CreateOrganizationDto : OrganizationInputDto
     public string AdminEmail { get; set; } = default!;
 
     public string AdminPassword { get; set; } = default!;
+
+    // Organizasyon olusturulurken acikca atanacak feature degerleri.
+    public List<FeatureSelectionDto> Features { get; set; } = [];
 }

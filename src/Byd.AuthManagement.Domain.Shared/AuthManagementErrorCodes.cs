@@ -24,4 +24,7 @@ public static class AuthManagementErrorCodes
 
     // Kullanici daveti ailesinin numara grubu.
     public const string InvitationGroup = RootNamespace + ":05";
+
+    // Feature ailesinin numara grubu.
+    public const string FeatureGroup = RootNamespace + ":06";
 }

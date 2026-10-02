@@ -11,6 +11,8 @@ using Volo.Abp.Mapperly;
 using Volo.Abp.Modularity;
 using Volo.Abp.OpenIddict;
 using Volo.Abp.Application;
+using Volo.Abp.FeatureManagement;
+using Volo.Abp.TenantManagement;
 
 namespace Byd.AuthManagement;
 
@@ -18,6 +20,8 @@ namespace Byd.AuthManagement;
     typeof(CoreExtensionsApplicationModule),
     typeof(AuthManagementDomainModule),
     typeof(AuthManagementApplicationContractsModule),
+    typeof(AbpFeatureManagementApplicationModule),
+    typeof(AbpTenantManagementApplicationModule),
     typeof(AbpDddApplicationModule),
     typeof(AbpMapperlyModule),
     typeof(AbpIdentityAspNetCoreModule),

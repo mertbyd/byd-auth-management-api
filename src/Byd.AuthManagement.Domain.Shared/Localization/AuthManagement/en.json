@@ -7,6 +7,8 @@
     "Permission:Organizations": "Organizations",
     "Permission:Organizations.View": "View organizations",
     "Permission:Organizations.Manage": "Manage organizations",
+    "Permission:Features": "Features",
+    "Permission:Features.Manage": "Manage organization features",
     "Permission:Users": "Users",
     "Permission:Users.Manage": "Invite users and assign roles",
     "AuthManagement:010001": "Organization name is required.",
@@ -51,6 +53,14 @@
     "AuthManagement:050004": "User name is required.",
     "AuthManagement:050005": "Email is required.",
     "AuthManagement:050006": "Email is not a valid address.",
-    "AuthManagement:050007": "Application name is required."
+    "AuthManagement:050007": "Application name is required.",
+    "AuthManagement:060001": "At least one feature is required.",
+    "AuthManagement:060002": "Feature name is required.",
+    "AuthManagement:060003": "Feature value is required.",
+    "AuthManagement:060004": "Feature names must be unique.",
+    "AuthManagement:060005": "Feature selection must be a list of name and value pairs.",
+    "AuthManagement:060006": "The selected feature is not defined.",
+    "AuthManagement:060007": "The feature value does not match its definition.",
+    "AuthManagement:060008": "The organization is outside your feature management scope."
   }
 }

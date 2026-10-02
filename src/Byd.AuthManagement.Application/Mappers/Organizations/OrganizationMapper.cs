@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using Byd.AuthManagement.Dtos.Features;
 using Byd.AuthManagement.Dtos.Organizations;
+using Byd.AuthManagement.Models.Features;
 using Byd.AuthManagement.Models.Organizations;
 using Riok.Mapperly.Abstractions;
 
@@ -18,4 +20,6 @@ public partial class OrganizationMapper
     public partial OrganizationDto Map(OrganizationModel source);
     public partial CreatedOrganizationDto Map(CreatedOrganizationModel source);
     public partial List<OrganizationDto> Map(List<OrganizationModel> source);
+    public partial FeatureSelectionModel Map(FeatureSelectionDto source);
+    public partial FeatureSelectionDto Map(FeatureSelectionModel source);
 }

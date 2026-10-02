@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using Byd.AuthManagement.Models.Features;
+
 namespace Byd.AuthManagement.Models.Organizations;
 
 /// <summary>
@@ -7,4 +10,5 @@ namespace Byd.AuthManagement.Models.Organizations;
 // sistemdeki gorevi: Organizasyon guncelleme senaryosunun transporttan bagimsiz girdi tipidir.
 public sealed class OrganizationUpdateModel : OrganizationInputModel
 {
+    public List<FeatureSelectionModel>? Features { get; set; }
 }

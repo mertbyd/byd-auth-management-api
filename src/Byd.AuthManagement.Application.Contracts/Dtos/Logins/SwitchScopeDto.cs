@@ -9,8 +9,9 @@ namespace Byd.AuthManagement.Dtos.Logins;
 // sistemdeki gorevi: Switch endpointinin public girdi tipidir; kullanici istegin token'indan okunur, sifre istenmez.
 public sealed class SwitchScopeDto
 {
-    public Guid TenantId { get; set; }
+    // Null host secimidir; secimin kullaniciya acik oldugunu Manager dogrular.
+    public Guid? TenantId { get; set; }
 
-    // Gecilecek organizasyon; tenant'ta tek uyelik varsa bos birakilabilir.
+    // Null organizasyon, secilen tenant ya da host kapsaminda kalir.
     public Guid? OrganizationId { get; set; }
 }

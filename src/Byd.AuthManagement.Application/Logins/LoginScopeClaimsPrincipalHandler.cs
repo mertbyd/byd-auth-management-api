@@ -3,11 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Security.Principal;
+using System.Threading;
 using System.Threading.Tasks;
 using OpenIddict.Abstractions;
 using Byd.AuthManagement.Consts;
+using Byd.AuthManagement.ExceptionCodes;
 using Byd.AuthManagement.Managers.Accounts;
+using Byd.AuthManagement.Models.Logins;
 using Byd.CoreExtensions.Consts;
+using Volo.Abp;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Identity;
 using Volo.Abp.OpenIddict;
@@ -30,28 +34,50 @@ public class LoginScopeClaimsPrincipalHandler(AccountManager accountManager)
         if (!request.IsPasswordGrantType() && !request.IsRefreshTokenGrantType() && !request.IsTokenExchangeGrantType())
             return;
         var userId = context.Principal.FindUserId()!.Value;
-        var selection = await accountManager.ResolveTokenSelectionAsync(
-            userId,
-            await accountManager.GetScopeAsync(userId),
-            ReadScopeId(context, OpenIddictConsts.TenantParameter, TenantClaimTypes.TenantId),
-            ReadScopeId(context, OpenIddictConsts.OrganizationParameter, OrganizationClaimTypes.OrganizationId));
+        var selection = await ResolveSelectionAsync(context, userId);
         var identity = context.Principal.Identities.First();
         SetRoles(identity, selection.Roles);
         SetClaim(identity, TenantClaimTypes.TenantId, selection.TenantId?.ToString());
         SetClaim(identity, TenantClaimTypes.TenantName, selection.TenantName);
         SetClaim(identity, OrganizationClaimTypes.OrganizationId, selection.OrganizationId?.ToString());
         SetClaim(identity, OrganizationClaimTypes.OrganizationName, selection.OrganizationName);
+        SetClaim(identity, ScopeClaimTypes.Level, selection.IsSelectionRequired ? null : selection.ScopeLevel.ToString());
     }
 
-    // Istekteki form parametresini, yoksa refresh token'daki claim'i okur.
+    // Switch ve secilmis refresh kapsamini aynen yeniden dogrular; ilk login tek secenegi tamamlayabilir.
+    private async Task<LoginSelectionModel> ResolveSelectionAsync(
+        AbpOpenIddictClaimsPrincipalHandlerContext context,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantId = ReadScopeId(context, OpenIddictConsts.TenantParameter, TenantClaimTypes.TenantId);
+        var organizationId = ReadScopeId(context, OpenIddictConsts.OrganizationParameter, OrganizationClaimTypes.OrganizationId);
+        if (context.OpenIddictRequest.IsTokenExchangeGrantType() ||
+            context.OpenIddictRequest.IsRefreshTokenGrantType() &&
+            context.Principal.HasClaim(claim => claim.Type == ScopeClaimTypes.Level))
+            return await accountManager.ResolveSelectionAsync(userId, tenantId, organizationId, cancellationToken: cancellationToken);
+
+        return await accountManager.ResolveTokenSelectionAsync(
+            userId,
+            await accountManager.GetScopeAsync(userId, cancellationToken),
+            tenantId,
+            organizationId,
+            cancellationToken);
+    }
+
+    // Refresh yalniz token kapsamini okur; switch'te bos alan eski token'dan doldurulmaz.
     private static Guid? ReadScopeId(
         AbpOpenIddictClaimsPrincipalHandlerContext context,
         string parameterName,
         string claimType)
     {
-        var value = (string?)context.OpenIddictRequest.GetParameter(parameterName)
-                    ?? context.Principal.FindFirst(claimType)?.Value;
-        return Guid.TryParse(value, out var id) ? id : null;
+        var value = context.OpenIddictRequest.IsRefreshTokenGrantType()
+            ? context.Principal.FindFirst(claimType)?.Value
+            : (string?)context.OpenIddictRequest.GetParameter(parameterName);
+        if (string.IsNullOrEmpty(value))
+            return null;
+        return Guid.TryParse(value, out var id) && id != Guid.Empty
+            ? id : throw new BusinessException(LoginExceptionCodes.ScopeNotAvailable);
     }
 
     // Rol claim'lerini kapsamdaki rollerin adi ve kimligiyle degistirir.

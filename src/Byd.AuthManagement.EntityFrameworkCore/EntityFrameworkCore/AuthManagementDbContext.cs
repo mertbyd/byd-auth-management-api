@@ -4,6 +4,8 @@ using Byd.CoreExtensions.Extensions;
 using Volo.Abp.Data;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.EntityFrameworkCore;
+using Volo.Abp.FeatureManagement;
+using Volo.Abp.FeatureManagement.EntityFrameworkCore;
 using Volo.Abp.Identity;
 using Volo.Abp.Identity.EntityFrameworkCore;
 using Volo.Abp.OpenIddict.Applications;
@@ -26,6 +28,7 @@ namespace Byd.AuthManagement.EntityFrameworkCore;
 [ReplaceDbContext(typeof(IIdentityDbContext))]
 [ReplaceDbContext(typeof(IOpenIddictDbContext))]
 [ReplaceDbContext(typeof(IPermissionManagementDbContext))]
+[ReplaceDbContext(typeof(IFeatureManagementDbContext))]
 [ReplaceDbContext(typeof(ITenantManagementDbContext))]
 [ConnectionStringName(AuthManagementDbProperties.ConnectionStringName)]
 public class AuthManagementDbContext : BydDbContext<AuthManagementDbContext>,
@@ -33,6 +36,7 @@ public class AuthManagementDbContext : BydDbContext<AuthManagementDbContext>,
     IIdentityDbContext,
     IOpenIddictDbContext,
     IPermissionManagementDbContext,
+    IFeatureManagementDbContext,
     ITenantManagementDbContext
 {
     /* Add DbSet for each Aggregate Root here. Example:
@@ -74,6 +78,13 @@ public class AuthManagementDbContext : BydDbContext<AuthManagementDbContext>,
 
     public DbSet<ResourcePermissionGrant> ResourcePermissionGrants { get; set; } = default!;
 
+    // Feature tanimlari ve provider degerleri cerceveden gelir; IFeatureManagementDbContext bu uc seti talep eder.
+    public DbSet<FeatureGroupDefinitionRecord> FeatureGroups { get; set; } = default!;
+
+    public DbSet<FeatureDefinitionRecord> Features { get; set; } = default!;
+
+    public DbSet<FeatureValue> FeatureValues { get; set; } = default!;
+
     // Kiraci entity'leri cerceveden gelir; ITenantManagementDbContext bu iki seti talep eder.
     public DbSet<Tenant> Tenants { get; set; } = default!;
 
@@ -96,6 +107,8 @@ public class AuthManagementDbContext : BydDbContext<AuthManagementDbContext>,
         builder.ConfigureOpenIddict();
 
         builder.ConfigurePermissionManagement();
+
+        builder.ConfigureFeatureManagement();
 
         builder.ConfigureTenantManagement();
 
