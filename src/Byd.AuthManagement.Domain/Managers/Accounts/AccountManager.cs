@@ -57,13 +57,17 @@ public class AccountManager(
     ICurrentUser currentUser,
     ICurrentOrganization currentOrganization) : DomainService
 {
-    // Kullaniciyi adina ya da e-postasina gore bulur; bulunamazsa gecersiz kimlik bilgisi hatasi verir.
+    // Kullaniciyi istekteki tenant'tan bagimsiz, adina ya da e-postasina gore bulur; bulunamazsa gecersiz kimlik
+    // bilgisi hatasi verir.
     public virtual async Task<IdentityUser> GetUserAsync(
         string userNameOrEmail,
         CancellationToken cancellationToken = default)
-        => await userManager.FindByNameAsync(userNameOrEmail)
-           ?? await userManager.FindByEmailAsync(userNameOrEmail)
-           ?? throw new BusinessException(LoginExceptionCodes.InvalidCredentials);
+    {
+        using var tenantFilter = dataFilter.Disable<IMultiTenant>();
+        return await userManager.FindByNameAsync(userNameOrEmail)
+               ?? await userManager.FindByEmailAsync(userNameOrEmail)
+               ?? throw new BusinessException(LoginExceptionCodes.InvalidCredentials);
+    }
 
     // Sifre kontrolunun sonucunu hata koduna cevirir.
     public virtual void EnsureSignedIn(SignInResult result)
