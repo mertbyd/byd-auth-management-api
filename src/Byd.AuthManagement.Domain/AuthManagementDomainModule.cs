@@ -1,4 +1,5 @@
 ﻿using Byd.CoreExtensions;
+using Byd.LogManagement;
 using Byd.AuthManagement.Consts;
 using Volo.Abp.Domain;
 using Byd.AuthManagement.Providers.Features;
@@ -15,6 +16,7 @@ namespace Byd.AuthManagement;
 
 [DependsOn(
     typeof(CoreExtensionsDomainModule),
+    typeof(LogManagementDomainModule),
     typeof(AbpFeatureManagementDomainModule),
     typeof(AbpIdentityDomainModule),
     typeof(AbpOpenIddictDomainModule),

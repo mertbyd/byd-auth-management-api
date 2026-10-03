@@ -126,12 +126,15 @@ public class AccountManager(
         var scopeRoles = await GetScopeRolesAsync(roles, selectedTenantId, organization, cancellationToken);
         if (scopeRoles.Count == 0)
             throw new BusinessException(LoginExceptionCodes.NoRoleInScope);
+        var parent = await FindParentOrganizationAsync(organization, cancellationToken);
         return new LoginSelectionModel
         {
             TenantId = selectedTenantId,
             TenantName = selectedTenantId is null ? null : (await tenantStore.FindAsync(selectedTenantId.Value))?.Name,
             OrganizationId = organization?.Id,
             OrganizationName = organization?.DisplayName,
+            ParentOrganizationId = parent?.Id,
+            ParentOrganizationName = parent?.DisplayName,
             ScopeLevel = ResolveScopeLevel(selectedTenantId, organization),
             Roles = scopeRoles
         };
@@ -286,6 +289,16 @@ public class AccountManager(
             throw new BusinessException(LoginExceptionCodes.ScopeNotAvailable);
 
         return tenantId;
+    }
+
+    // Secilen organizasyonun ust organizasyonunu getirir; kok organizasyonda veya organizasyon secilmediyse null doner.
+    private async Task<OrganizationUnit?> FindParentOrganizationAsync(
+        OrganizationUnit? organization,
+        CancellationToken cancellationToken = default)
+    {
+        return organization?.ParentId is null
+            ? null
+            : await organizationRepository.FindAsync(organization.ParentId.Value, includeDetails: false, cancellationToken);
     }
 
     // Secilen organizasyon tenant'taki uyeliklerden biri olmali; secilmediyse tek uyelik alinir.

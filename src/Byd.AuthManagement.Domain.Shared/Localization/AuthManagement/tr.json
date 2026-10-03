@@ -11,6 +11,8 @@
     "Permission:Features.Manage": "Organizasyon feature'larini yonetme",
     "Permission:Users": "Kullanicilar",
     "Permission:Users.Manage": "Kullanici davet etme ve rol verme",
+    "Email:UserInvitation.Name": "Kullanıcı daveti",
+    "Email:UserInvitation.Subject": "Hesabınız hazır - şifrenizi belirleyin",
     "AuthManagement:010001": "Organizasyon adi zorunludur.",
     "AuthManagement:010002": "Organizasyon adi izin verilenden uzun.",
     "AuthManagement:010003": "Yonetici kullanici adi zorunludur.",

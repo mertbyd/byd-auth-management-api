@@ -11,6 +11,8 @@
     "Permission:Features.Manage": "Manage organization features",
     "Permission:Users": "Users",
     "Permission:Users.Manage": "Invite users and assign roles",
+    "Email:UserInvitation.Name": "User invitation",
+    "Email:UserInvitation.Subject": "Your account is ready - set your password",
     "AuthManagement:010001": "Organization name is required.",
     "AuthManagement:010002": "Organization name is longer than allowed.",
     "AuthManagement:010003": "Administrator user name is required.",

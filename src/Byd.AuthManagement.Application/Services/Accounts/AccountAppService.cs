@@ -11,7 +11,7 @@ using Byd.AuthManagement.Dtos.Registrations;
 using Byd.AuthManagement.Logins;
 using Byd.AuthManagement.Managers.Accounts;
 using Byd.AuthManagement.Mappers.Accounts;
-using Byd.EmailManagement.Managers.Emailing;
+using Byd.CoreExtensions.Managers;
 using Volo.Abp.Account.Emailing;
 using Volo.Abp.UI.Navigation.Urls;
 using Volo.Abp.Users;
@@ -51,8 +51,8 @@ public class AccountAppService : AuthManagementAppService, IAccountAppService
         LazyGetRequiredService<IValidator<TenantRegisterDto>>();
     private IValidator<InviteUserDto> InviteUserValidator =>
         LazyGetRequiredService<IValidator<InviteUserDto>>();
-    private EmailManager EmailManager =>
-        LazyGetRequiredService<EmailManager>();
+    private EmailTemplateManager EmailTemplateManager =>
+        LazyGetRequiredService<EmailTemplateManager>();
     private IAppUrlProvider AppUrlProvider =>
         LazyGetRequiredService<IAppUrlProvider>();
     private Volo.Abp.Account.IAccountAppService AbpAccountAppService =>
@@ -174,11 +174,11 @@ public class AccountAppService : AuthManagementAppService, IAccountAppService
                 resetPasswordUrl,
                 input.ReturnUrl,
                 input.ReturnUrlHash);
-            await EmailManager.SendDatabaseTemplateAsync(
-                [invitation.Email],
-                InvitationConsts.EmailTemplateName,
+            await EmailTemplateManager.SendAsync(
+                InvitationConsts.EmailEventName,
+                invitation.Email,
                 new { name = invitation.UserName, link },
-                cancellationToken: cancellationToken);
+                cancellationToken);
         }
 
         return Mapper.Map(invitation);

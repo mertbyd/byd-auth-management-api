@@ -41,6 +41,8 @@ public class LoginScopeClaimsPrincipalHandler(AccountManager accountManager)
         SetClaim(identity, TenantClaimTypes.TenantName, selection.TenantName);
         SetClaim(identity, OrganizationClaimTypes.OrganizationId, selection.OrganizationId?.ToString());
         SetClaim(identity, OrganizationClaimTypes.OrganizationName, selection.OrganizationName);
+        SetClaim(identity, OrganizationClaimTypes.ParentId, selection.ParentOrganizationId?.ToString());
+        SetClaim(identity, OrganizationClaimTypes.ParentName, selection.ParentOrganizationName);
         SetClaim(identity, ScopeClaimTypes.Level, selection.IsSelectionRequired ? null : selection.ScopeLevel.ToString());
     }
 

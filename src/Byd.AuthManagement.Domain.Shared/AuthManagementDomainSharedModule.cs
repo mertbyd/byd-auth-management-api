@@ -1,4 +1,5 @@
 ﻿using Byd.CoreExtensions;
+using Byd.LogManagement;
 using Volo.Abp.Modularity;
 using Volo.Abp.Localization;
 using Byd.AuthManagement.Localization;
@@ -13,6 +14,7 @@ namespace Byd.AuthManagement;
 
 [DependsOn(
     typeof(CoreExtensionsDomainSharedModule),
+    typeof(LogManagementDomainSharedModule),
     typeof(AbpFeatureManagementDomainSharedModule),
     typeof(AbpValidationModule),
     typeof(AbpDddDomainSharedModule)

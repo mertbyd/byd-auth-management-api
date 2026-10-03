@@ -1,4 +1,5 @@
 ﻿using Byd.CoreExtensions;
+using Byd.LogManagement;
 using Volo.Abp.Application;
 using Volo.Abp.Modularity;
 using Volo.Abp.Authorization;
@@ -8,6 +9,7 @@ namespace Byd.AuthManagement;
 
 [DependsOn(
     typeof(CoreExtensionsApplicationContractsModule),
+    typeof(LogManagementApplicationContractsModule),
     typeof(AuthManagementDomainSharedModule),
     typeof(AbpFeatureManagementApplicationContractsModule),
     typeof(AbpDddApplicationContractsModule),
