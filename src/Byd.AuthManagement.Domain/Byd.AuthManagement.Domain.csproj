@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Byd.LogManagement.Domain" Version="0.1.3" />
+    <PackageReference Include="Byd.LogManagement.Domain" Version="0.1.4" />
   </ItemGroup>
 
 </Project>
