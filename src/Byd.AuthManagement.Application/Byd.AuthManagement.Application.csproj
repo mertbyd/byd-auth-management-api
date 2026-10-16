@@ -21,8 +21,8 @@
     <ProjectReference Include="..\Byd.AuthManagement.Domain\Byd.AuthManagement.Domain.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Byd.CoreExtensions.Application" Version="0.3.8" />
-    <PackageReference Include="Byd.LogManagement.Application" Version="0.1.1" />
+    <PackageReference Include="Byd.CoreExtensions.Application" Version="0.3.9" />
+    <PackageReference Include="Byd.LogManagement.Application" Version="0.1.2" />
   </ItemGroup>
 
 </Project>
