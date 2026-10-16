@@ -8,7 +8,6 @@ using Volo.Abp.FeatureManagement;
 namespace Byd.AuthManagement;
 
 [DependsOn(
-    typeof(CoreExtensionsApplicationContractsModule),
     typeof(LogManagementApplicationContractsModule),
     typeof(AuthManagementDomainSharedModule),
     typeof(AbpFeatureManagementApplicationContractsModule),

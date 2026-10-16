@@ -13,7 +13,6 @@ using Volo.Abp.VirtualFileSystem;
 namespace Byd.AuthManagement;
 
 [DependsOn(
-    typeof(CoreExtensionsDomainSharedModule),
     typeof(LogManagementDomainSharedModule),
     typeof(AbpFeatureManagementDomainSharedModule),
     typeof(AbpValidationModule),

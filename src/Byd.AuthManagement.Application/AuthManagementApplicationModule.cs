@@ -1,6 +1,5 @@
 ﻿using System.Net.Http;
 using Duende.IdentityModel.Client;
-using Byd.CoreExtensions;
 using Byd.LogManagement;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -18,7 +17,6 @@ using Volo.Abp.TenantManagement;
 namespace Byd.AuthManagement;
 
 [DependsOn(
-    typeof(CoreExtensionsApplicationModule),
     typeof(LogManagementApplicationModule),
     typeof(AuthManagementDomainModule),
     typeof(AuthManagementApplicationContractsModule),

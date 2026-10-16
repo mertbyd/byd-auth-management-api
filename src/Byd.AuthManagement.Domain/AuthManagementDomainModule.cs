@@ -15,7 +15,6 @@ using Volo.Abp.TenantManagement;
 namespace Byd.AuthManagement;
 
 [DependsOn(
-    typeof(CoreExtensionsDomainModule),
     typeof(LogManagementDomainModule),
     typeof(AbpFeatureManagementDomainModule),
     typeof(AbpIdentityDomainModule),

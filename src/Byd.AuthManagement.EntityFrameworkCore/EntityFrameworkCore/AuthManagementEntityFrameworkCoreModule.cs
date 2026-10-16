@@ -1,4 +1,3 @@
-using Byd.CoreExtensions.EntityFrameworkCore;
 using Byd.LogManagement.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Byd.AuthManagement.Extensions;
@@ -14,7 +13,6 @@ using Volo.Abp.Modularity;
 namespace Byd.AuthManagement.EntityFrameworkCore;
 
 [DependsOn(
-    typeof(CoreExtensionsEntityFrameworkCoreModule),
     typeof(LogManagementEntityFrameworkCoreModule),
     typeof(AuthManagementDomainModule),
     typeof(AbpEntityFrameworkCoreModule),
