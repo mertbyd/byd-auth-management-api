@@ -3,6 +3,7 @@ using Byd.LogManagement;
 using Byd.AuthManagement.Consts;
 using Volo.Abp.Domain;
 using Byd.AuthManagement.Providers.Features;
+using Byd.AuthManagement.Providers.Settings;
 using Byd.AuthManagement.Permissions;
 using Volo.Abp.FeatureManagement;
 using Volo.Abp.Features;
@@ -10,6 +11,8 @@ using Volo.Abp.Identity;
 using Volo.Abp.Modularity;
 using Volo.Abp.OpenIddict;
 using Volo.Abp.PermissionManagement;
+using Volo.Abp.SettingManagement;
+using Volo.Abp.Settings;
 using Volo.Abp.TenantManagement;
 
 namespace Byd.AuthManagement;
@@ -26,7 +29,7 @@ namespace Byd.AuthManagement;
 )]
 public class AuthManagementDomainModule : AbpModule
 {
-    // Dinamik tanimlari veritabanindan okumayi ve organizasyon provider'larini etkinlestirir.
+    // Dinamik tanimlari veritabanindan okumayi ve organizasyon feature/ayar provider'larini etkinlestirir.
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
         Configure<FeatureManagementOptions>(options =>
@@ -42,5 +45,13 @@ public class AuthManagementDomainModule : AbpModule
             // FeatureChecker provider listesini ters sirada calistirir; son eklenen organizasyon kurali once sorulur.
             options.ValueProviders.Add<OrganizationFeatureValueProvider>();
         });
+
+        // SettingProvider listeyi ters sirada calistirir; organizasyon degeri kullanicidan sonra, tenant'tan once sorulur.
+        Configure<AbpSettingOptions>(options => options.ValueProviders.Insert(
+            options.ValueProviders.IndexOf(typeof(TenantSettingValueProvider)) + 1,
+            typeof(OrganizationSettingValueProvider)));
+        Configure<SettingManagementOptions>(options => options.Providers.Insert(
+            options.Providers.IndexOf(typeof(TenantSettingManagementProvider)) + 1,
+            typeof(OrganizationSettingManagementProvider)));
     }
 }
