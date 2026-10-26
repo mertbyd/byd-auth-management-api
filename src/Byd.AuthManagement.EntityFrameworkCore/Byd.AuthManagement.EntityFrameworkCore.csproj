@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Byd.LogManagement.EntityFrameworkCore" Version="0.1.5" />
+    <PackageReference Include="Byd.LogManagement.EntityFrameworkCore" Version="0.1.6" />
   </ItemGroup>
 
 </Project>
