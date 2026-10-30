@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Byd.LogManagement.Application.Contracts" Version="0.1.6" />
+    <PackageReference Include="Byd.LogManagement.Application.Contracts" Version="0.1.7" />
   </ItemGroup>
 
 </Project>
