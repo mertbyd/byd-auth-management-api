@@ -3,12 +3,19 @@ namespace Byd.AuthManagement.Consts;
 /// <summary>
 /// Kullanici davetinin kararli sabitlerini tanimlar.
 /// </summary>
-// islevi: Davet e-postasinin email modulu veritabanindaki sablon adini tek yerde tutar.
-// sistemdeki gorevi: Auth davet akisi ile merkezi email template satirini ayni ad uzerinden baglar.
+// islevi: Davet baglantisinin parcalarini ve davet e-postasinin varsayilan sablon kaynaklarini tek yerde tutar.
+// sistemdeki gorevi: Auth davet akisi, baglanti kurucusu ve varsayilan sablon seed'i ayni degerleri buradan okur.
 public static class InvitationConsts
 {
-    // Davet e-postasinin email modulu template adi.
-    public const string EmailTemplateName = "AuthManagement.UserInvitation";
+    // Davet e-postasinin core olay tablosundaki tekil adi; seed bu adla olayi acar, gonderim bu adla sablonu bulur.
+    public const string EmailEventName = "AuthManagement.UserInvitation";
+
+    // Davet e-postasinin varsayilan sablonunun gomulu dosya yolu; {0} sablonun dilidir.
+    public const string EmailTemplateVirtualPathFormat = "/Invitations/Templates/UserInvitation/{0}.tpl";
+
+    // Varsayilan davet sablonu gomulu olan diller; seed her dil icin host kapsaminda bir sablon acar.
+    public static readonly string[] EmailTemplateCultureNames = ["tr", "en"];
+
     public const string AuthorizationCallbackPath = "/connect/authorize/callback";
     public const string AuthorizationPath = "/connect/authorize?";
     public const string UserIdQueryParameterName = "userId";

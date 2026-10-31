@@ -16,14 +16,11 @@ using System.Reflection;
 using Byd.CoreExtensions;
 using Byd.CoreExtensions.Extensions;
 using Byd.CoreExtensions.Options;
+using Byd.FileManagement;
 using Byd.AuthManagement.Consts;
 using Byd.AuthManagement.EntityFrameworkCore;
 using Byd.AuthManagement.MultiTenancy;
 using Byd.AuthManagement.Options;
-using Byd.EmailManagement;
-using Byd.EmailManagement.EntityFrameworkCore;
-using Byd.EmailManagement.Options;
-using Byd.LogManagement.EntityFrameworkCore;
 using StackExchange.Redis;
 using Microsoft.OpenApi;
 using Volo.Abp;
@@ -61,10 +58,6 @@ namespace Byd.AuthManagement;
     typeof(AuthManagementApplicationModule),
     typeof(AuthManagementEntityFrameworkCoreModule),
     typeof(AuthManagementHttpApiModule),
-    typeof(EmailManagementApplicationModule),
-    typeof(EmailManagementEntityFrameworkCoreModule),
-    typeof(EmailManagementHttpApiModule),
-    typeof(LogManagementEntityFrameworkCoreModule),
     typeof(AbpIdentityApplicationModule),
     typeof(AbpIdentityHttpApiModule),
     typeof(AbpPermissionManagementApplicationModule),
@@ -145,9 +138,6 @@ public class AuthManagementHttpApiHostModule : AbpModule
             options.Applications[PasswordConsts.ClientAppName].Urls[AccountUrlNames.PasswordReset] =
                 PasswordConsts.ResetPasswordPagePath;
         });
-
-        // E-postalar email modulunun gondericisinden cikar; gonderici ve SMTP ayarlari host'un kendi ayarindan gelir.
-        Configure<EmailManagementOptions>(configuration.GetSection("EmailManagement"));
 
         // Host yalniz bearer tabanli API sunar; cookie tabanli CSRF dogrulamasi Swagger POST isteklerine uygulanmaz.
         Configure<AbpAntiForgeryOptions>(options =>
@@ -271,6 +261,7 @@ public class AuthManagementHttpApiHostModule : AbpModule
         app.UseAbpRequestLocalization();
         // Organizasyon feature'i authorization sirasinda degerlendirilir; claim kapsami once kurulmalidir.
         app.UseCoreExtensions();//core module
+        app.UseFileManagement();
         app.UseAuthorization();
         app.UseSwagger();
         app.UseAbpSwaggerUI(options =>

@@ -15,4 +15,10 @@ public static class AuthManagementLocalizationKeys
         public const string Users = "Permission:Users";
         public const string UsersManage = "Permission:Users.Manage";
     }
+
+    public static class Emails
+    {
+        public const string UserInvitationName = "Email:UserInvitation.Name";
+        public const string UserInvitationSubject = "Email:UserInvitation.Subject";
+    }
 }

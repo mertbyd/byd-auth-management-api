@@ -14,7 +14,10 @@
     <PackageReference Include="Volo.Abp.Identity.AspNetCore" Version="10.3.0" />
     <PackageReference Include="Volo.Abp.OpenIddict.AspNetCore" Version="10.3.0" />
     <ProjectReference Include="..\Byd.AuthManagement.Application.Contracts\Byd.AuthManagement.Application.Contracts.csproj" />
-    <ProjectReference Include="..\..\..\byd-core-extensions-api\src\Byd.CoreExtensions.HttpApi\Byd.CoreExtensions.HttpApi.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Byd.CoreExtensions.HttpApi" Version="0.3.11" />
   </ItemGroup>
 
 </Project>
